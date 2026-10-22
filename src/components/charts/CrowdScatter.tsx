@@ -3,6 +3,7 @@ import { CrowdScatterPoint } from '../../services/analytics/types.ts';
 import { formatRatingDelta } from '../../services/analytics/statistical.ts';
 import { TrendingUp, TrendingDown } from 'lucide-react';
 import { CONFIG } from '../../config/env.ts';
+import { PosterImage } from '../common/PosterImage.tsx';
 
 interface CrowdScatterProps {
   scatterPoints: CrowdScatterPoint[];
@@ -68,16 +69,12 @@ export const CrowdScatter: React.FC<CrowdScatterProps> = ({
                 className="flex w-full items-center justify-between rounded p-1.5 hover:bg-[#1b2026] text-left transition-colors"
               >
                 <div className="flex items-center space-x-2.5 truncate">
-                  {point.posterPath ? (
-                    <img
-                      src={`${CONFIG.tmdbImageBase}/w92${point.posterPath}`}
-                      alt={point.title}
-                      className="h-10 w-7 rounded object-cover border border-[#2c3440]"
-                      loading="lazy"
-                    />
-                  ) : (
-                    <div className="h-10 w-7 rounded bg-[#222831]" />
-                  )}
+                  <PosterImage
+                    src={point.posterPath ? `${CONFIG.tmdbImageBase}/w92${point.posterPath}` : null}
+                    alt={point.title}
+                    className="h-10 w-7 rounded object-cover border border-[#2c3440] shrink-0"
+                    loading="lazy"
+                  />
                   <div className="truncate">
                     <div className="text-xs font-semibold text-white truncate">{point.title}</div>
                     <div className="text-[10px] text-[#99aabb]">
@@ -109,16 +106,12 @@ export const CrowdScatter: React.FC<CrowdScatterProps> = ({
                 className="flex w-full items-center justify-between rounded p-1.5 hover:bg-[#1b2026] text-left transition-colors"
               >
                 <div className="flex items-center space-x-2.5 truncate">
-                  {point.posterPath ? (
-                    <img
-                      src={`${CONFIG.tmdbImageBase}/w92${point.posterPath}`}
-                      alt={point.title}
-                      className="h-10 w-7 rounded object-cover border border-[#2c3440]"
-                      loading="lazy"
-                    />
-                  ) : (
-                    <div className="h-10 w-7 rounded bg-[#222831]" />
-                  )}
+                  <PosterImage
+                    src={point.posterPath ? `${CONFIG.tmdbImageBase}/w92${point.posterPath}` : null}
+                    alt={point.title}
+                    className="h-10 w-7 rounded object-cover border border-[#2c3440] shrink-0"
+                    loading="lazy"
+                  />
                   <div className="truncate">
                     <div className="text-xs font-semibold text-white truncate">{point.title}</div>
                     <div className="text-[10px] text-[#99aabb]">

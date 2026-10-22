@@ -207,10 +207,11 @@ export const App: React.FC = () => {
   };
 
   const handleSelectPerson = (person: RankedPerson, role: string) => {
+    const roleLabel = role === 'actresses' ? 'actress' : role.endsWith('s') ? role.slice(0, -1) : role;
     setDrawerState({
       isOpen: true,
       title: `${person.person.name}`,
-      subtitle: `${person.count} ${role.slice(0, -1)} credits in your library • ${person.avgRating}★ avg`,
+      subtitle: `${person.count} ${roleLabel} credits in your library • ${person.avgRating}★ avg`,
       filmKeys: person.filmKeys
     });
   };

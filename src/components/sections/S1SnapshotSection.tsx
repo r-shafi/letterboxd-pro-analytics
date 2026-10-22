@@ -5,6 +5,7 @@ import { formatWatchDuration } from '../../utils/date.ts';
 import { formatRating } from '../../services/analytics/statistical.ts';
 import { CONFIG } from '../../config/env.ts';
 import { Film as FilmIcon, Clock, Star, Heart, Repeat, MessageSquare, Globe, User, Compass } from 'lucide-react';
+import { PosterImage } from '../common/PosterImage.tsx';
 
 interface S1SnapshotSectionProps {
   snapshot: S1Snapshot;
@@ -81,18 +82,16 @@ export const S1SnapshotSection: React.FC<S1SnapshotSectionProps> = ({
                       className="group relative h-20 w-14 rounded overflow-hidden border border-[#2c3440] hover:border-[#00e054] transition-all bg-[#14181c]"
                       title={film.name}
                     >
-                      {film.metadata?.posterPath ? (
-                        <img
-                          src={`${CONFIG.tmdbImageBase}/w185${film.metadata.posterPath}`}
-                          alt={film.name}
-                          className="h-full w-full object-cover group-hover:scale-105 transition-transform"
-                          loading="lazy"
-                        />
-                      ) : (
-                        <div className="flex h-full w-full items-center justify-center p-1 text-[8px] text-[#99aabb] text-center">
-                          {film.name}
-                        </div>
-                      )}
+                      <PosterImage
+                        src={film.metadata?.posterPath ? `${CONFIG.tmdbImageBase}/w185${film.metadata.posterPath}` : null}
+                        alt={film.name}
+                        className="h-full w-full object-cover group-hover:scale-105 transition-transform"
+                        fallbackIcon={
+                          <div className="flex h-full w-full items-center justify-center p-1 text-[8px] text-[#99aabb] text-center">
+                            {film.name}
+                          </div>
+                        }
+                      />
                     </button>
                   ))}
                 </div>

@@ -295,23 +295,21 @@ describe('Phase B: Data Correctness & Cross-Section Invariants', () => {
       />
     );
 
-    // Switch to Cast tab
-    const castTab = screen.getByRole('button', { name: 'Cast' });
-    fireEvent.click(castTab);
+    // Assert Cast tab is replaced by direct Actors and Actresses tabs
+    expect(screen.queryByRole('button', { name: 'Cast' })).not.toBeInTheDocument();
 
-    // By default in Cast tab, "All Cast" is active showing both
-    expect(screen.getByText('Leonardo DiCaprio')).toBeInTheDocument();
-    expect(screen.getByText('Scarlett Johansson')).toBeInTheDocument();
+    const actorsTab = screen.getByRole('button', { name: 'Actors' });
+    const actressesTab = screen.getByRole('button', { name: 'Actresses' });
+    expect(actorsTab).toBeInTheDocument();
+    expect(actressesTab).toBeInTheDocument();
 
-    // Switch to Actors sub-filter
-    const actorsFilter = screen.getByRole('button', { name: 'Actors' });
-    fireEvent.click(actorsFilter);
+    // Click direct Actors tab
+    fireEvent.click(actorsTab);
     expect(screen.getByText('Leonardo DiCaprio')).toBeInTheDocument();
     expect(screen.queryByText('Scarlett Johansson')).not.toBeInTheDocument();
 
-    // Switch to Actresses sub-filter
-    const actressesFilter = screen.getByRole('button', { name: 'Actresses' });
-    fireEvent.click(actressesFilter);
+    // Click direct Actresses tab
+    fireEvent.click(actressesTab);
     expect(screen.queryByText('Leonardo DiCaprio')).not.toBeInTheDocument();
     expect(screen.getByText('Scarlett Johansson')).toBeInTheDocument();
   });

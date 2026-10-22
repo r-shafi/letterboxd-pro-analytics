@@ -72,6 +72,7 @@ describe('Serverless URL Fragment Share (#v1=...) & Security', () => {
     expect(reconstructed.s1Snapshot.averageRating).toBe(snapshot.s1Snapshot.averageRating);
     expect(reconstructed.s7People.directors.length).toBeGreaterThan(0);
     expect(reconstructed.s9Genres.genres.length).toBeGreaterThan(0);
+    expect(reconstructed.s3Volume.trailing365Calendar.length).toBe(365);
   });
 
   it('reconstructs valid renderable snapshot from full payload', () => {
@@ -83,6 +84,13 @@ describe('Serverless URL Fragment Share (#v1=...) & Security', () => {
     expect(reconstructed.s3Volume.yearlyVolume.length).toBe(snapshot.s3Volume.yearlyVolume.length);
     expect(reconstructed.s4Ratings.histogram.length).toBe(10);
     expect(reconstructed.s5Crowd.contrarianIndex).toBe(snapshot.s5Crowd.contrarianIndex);
+    expect(reconstructed.s3Volume.trailing365Calendar.length).toBe(365);
+    expect(Object.keys(reconstructed.s3Volume.yearlyCalendars).length).toBeGreaterThan(0);
+
+    const totalActiveDaysOriginal = snapshot.s3Volume.trailing365Calendar.filter((c) => c.count > 0).length;
+    const totalActiveDaysReconstructed = reconstructed.s3Volume.trailing365Calendar.filter((c) => c.count > 0).length;
+    expect(totalActiveDaysReconstructed).toBe(totalActiveDaysOriginal);
+
     expect(Object.keys(films).length).toBeGreaterThan(0);
   });
 

@@ -197,7 +197,7 @@ export const S3VolumeSection: React.FC<S3VolumeSectionProps> = ({
         </div>
 
         {/* Seasonality & Weekday breakdown */}
-        <div className="rounded-xl border border-[#2c3440] bg-[#1b2026] p-6 shadow-xl space-y-4">
+        <div className="rounded-xl border border-[#2c3440] bg-[#1b2026] p-6 shadow-xl flex flex-col justify-between space-y-4">
           <div className="flex items-center justify-between">
             <h3 className="text-base font-bold text-white">Day of the Week Habits</h3>
             {volume.dateUnknownCount > 0 && (
@@ -206,7 +206,7 @@ export const S3VolumeSection: React.FC<S3VolumeSectionProps> = ({
               </span>
             )}
           </div>
-          <div className="grid grid-cols-7 gap-1.5 sm:gap-2 items-end h-40 pt-4" data-testid="weekday-habits-chart">
+          <div className="grid grid-cols-7 gap-1.5 sm:gap-2 h-56 pt-4" data-testid="weekday-habits-chart">
             {volume.weekdayDistribution.map((wd) => {
               const maxWd = Math.max(1, ...volume.weekdayDistribution.map((w) => w.count));
               const heightPct = maxWd > 0 ? Math.round((wd.count / maxWd) * 100) : 0;
@@ -214,8 +214,9 @@ export const S3VolumeSection: React.FC<S3VolumeSectionProps> = ({
               const intensity = maxWd > 0 ? 0.35 + 0.65 * (wd.count / maxWd) : 0.5;
 
               return (
-                <div key={wd.weekday} className="flex flex-col items-center h-full justify-end group">
-                  <div className="text-center mb-1 transition-transform group-hover:scale-110">
+                <div key={wd.weekday} className="flex flex-col items-center h-full justify-between group">
+                  {/* Count & Share Label above bar */}
+                  <div className="text-center mb-1.5 transition-transform group-hover:scale-110">
                     <span className={`block text-[11px] font-mono font-bold ${isPeak ? 'text-[#00e054]' : 'text-white'}`}>
                       {wd.count}
                     </span>
@@ -223,20 +224,26 @@ export const S3VolumeSection: React.FC<S3VolumeSectionProps> = ({
                       {wd.sharePercent}%
                     </span>
                   </div>
-                  <div
-                    data-testid={`weekday-bar-${wd.name.toLowerCase()}`}
-                    className={`w-full rounded-t transition-all duration-300 ${
-                      isPeak
-                        ? 'bg-[#00e054] shadow-[0_0_12px_rgba(0,224,84,0.3)]'
-                        : 'bg-[#40bcf4]'
-                    }`}
-                    style={{
-                      height: `${Math.max(4, heightPct)}%`,
-                      opacity: isPeak ? 1 : intensity
-                    }}
-                    title={`${wd.name}: ${wd.count} viewings (${wd.sharePercent}% share)${isPeak ? ' • Peak Activity Day' : ''}`}
-                  />
-                  <div className="mt-2 text-center">
+
+                  {/* Dedicated Bar Area: height percentage maps directly to available vertical space */}
+                  <div className="w-full flex-1 flex items-end justify-center px-1 pb-1">
+                    <div
+                      data-testid={`weekday-bar-${wd.name.toLowerCase()}`}
+                      className={`w-full max-w-[36px] rounded-t transition-all duration-300 ${
+                        isPeak
+                          ? 'bg-[#00e054] shadow-[0_0_12px_rgba(0,224,84,0.3)]'
+                          : 'bg-[#40bcf4]'
+                      }`}
+                      style={{
+                        height: `${Math.max(6, heightPct)}%`,
+                        opacity: isPeak ? 1 : intensity
+                      }}
+                      title={`${wd.name}: ${wd.count} viewings (${wd.sharePercent}% share)${isPeak ? ' • Peak Activity Day' : ''}`}
+                    />
+                  </div>
+
+                  {/* Day Label & optional Peak Badge */}
+                  <div className="mt-1 text-center h-8 flex flex-col justify-start">
                     <span className={`text-[11px] font-semibold ${isPeak ? 'text-[#00e054]' : 'text-[#ccdde6]'}`}>
                       {wd.name}
                     </span>

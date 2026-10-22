@@ -354,6 +354,7 @@ export class TmdbClient {
           character: string;
           profile_path?: string | null;
           order: number;
+          gender?: number;
         }>;
         crew: Array<{
           id: number;
@@ -361,6 +362,7 @@ export class TmdbClient {
           job: string;
           department: string;
           profile_path?: string | null;
+          gender?: number;
         }>;
       };
     }
@@ -390,39 +392,40 @@ export class TmdbClient {
       name: c.name,
       character: c.character,
       profilePath: c.profile_path,
-      order: c.order
+      order: c.order,
+      gender: c.gender
     }));
 
     // Crew categorisation
     const crew = data.credits?.crew || [];
     const directors: TmdbPersonCompact[] = crew
       .filter((c) => c.job === 'Director')
-      .map((c) => ({ id: c.id, name: c.name, job: c.job, profilePath: c.profile_path }));
+      .map((c) => ({ id: c.id, name: c.name, job: c.job, profilePath: c.profile_path, gender: c.gender }));
 
     const writers: TmdbPersonCompact[] = crew
       .filter((c) => c.job === 'Screenplay' || c.job === 'Writer' || c.department === 'Writing')
       .slice(0, 5)
-      .map((c) => ({ id: c.id, name: c.name, job: c.job, profilePath: c.profile_path }));
+      .map((c) => ({ id: c.id, name: c.name, job: c.job, profilePath: c.profile_path, gender: c.gender }));
 
     const cinematographers: TmdbPersonCompact[] = crew
       .filter((c) => c.job === 'Director of Photography' || c.job === 'Cinematographer')
       .slice(0, 3)
-      .map((c) => ({ id: c.id, name: c.name, job: c.job, profilePath: c.profile_path }));
+      .map((c) => ({ id: c.id, name: c.name, job: c.job, profilePath: c.profile_path, gender: c.gender }));
 
     const composers: TmdbPersonCompact[] = crew
       .filter((c) => c.job === 'Original Music Composer' || c.job === 'Music')
       .slice(0, 3)
-      .map((c) => ({ id: c.id, name: c.name, job: c.job, profilePath: c.profile_path }));
+      .map((c) => ({ id: c.id, name: c.name, job: c.job, profilePath: c.profile_path, gender: c.gender }));
 
     const editors: TmdbPersonCompact[] = crew
       .filter((c) => c.job === 'Editor')
       .slice(0, 3)
-      .map((c) => ({ id: c.id, name: c.name, job: c.job, profilePath: c.profile_path }));
+      .map((c) => ({ id: c.id, name: c.name, job: c.job, profilePath: c.profile_path, gender: c.gender }));
 
     const producers: TmdbPersonCompact[] = crew
       .filter((c) => c.job === 'Producer')
       .slice(0, 5)
-      .map((c) => ({ id: c.id, name: c.name, job: c.job, profilePath: c.profile_path }));
+      .map((c) => ({ id: c.id, name: c.name, job: c.job, profilePath: c.profile_path, gender: c.gender }));
 
     const keywords = (data.keywords?.keywords || []).map((k) => k.name);
 

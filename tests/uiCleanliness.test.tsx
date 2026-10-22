@@ -74,8 +74,8 @@ describe('Phase C: UI & Plain-Language Overhaul', () => {
     expect(screen.getByText('Shafi Rayhan')).toBeInTheDocument();
   });
 
-  it('3. Activity Calendar Year Switcher and Golden --today highlight', () => {
-    render(
+  it('3. Activity Calendar: Year Switcher, month labels, visible 0-day borders, matching legend, and golden --today highlight', () => {
+    const { container } = render(
       <S3VolumeSection
         volume={snapshot.s3Volume}
         onSelectDay={() => {}}
@@ -87,6 +87,28 @@ describe('Phase C: UI & Plain-Language Overhaul', () => {
     const switcher = screen.getByTestId('calendar-year-switcher');
     expect(switcher).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Trailing 365' })).toBeInTheDocument();
+
+    // Month headers are rendered (e.g. Jan, Feb, Mar...)
+    const monthHeaderRow = screen.getByTestId('calendar-month-headers');
+    expect(monthHeaderRow).toBeInTheDocument();
+    expect(monthHeaderRow.textContent).toMatch(/Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec/);
+
+    // 0-film days have visible fill and border (distinguishable from card background #1b2026)
+    const zeroDayCells = container.querySelectorAll<HTMLElement>('[data-count="0"]');
+    expect(zeroDayCells.length).toBeGreaterThan(0);
+    const firstZero = zeroDayCells[0];
+    expect(firstZero.style.backgroundColor).toBe('rgb(34, 40, 50)'); // #222832
+    expect(firstZero.style.border).toContain('rgb(47, 56, 70)'); // #2f3846
+
+    // Legend swatches match cell shape and classes
+    const legend = screen.getByTestId('calendar-legend');
+    expect(legend).toBeInTheDocument();
+    const legendSwatches = legend.querySelectorAll('.h-3.w-3');
+    expect(legendSwatches.length).toBe(4);
+    legendSwatches.forEach((swatch) => {
+      expect(swatch.className).toContain('rounded-sm');
+      expect(swatch.className).not.toContain('rounded-full');
+    });
 
     // Today cell has golden highlight test id
     const todayCell = screen.getByTestId('calendar-cell-today');

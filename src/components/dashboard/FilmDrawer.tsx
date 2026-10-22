@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Film } from '../../types/domain.ts';
 import { X, Star, ExternalLink, ArrowUpDown } from 'lucide-react';
 import { CONFIG } from '../../config/env.ts';
+import { PosterImage } from '../common/PosterImage.tsx';
 
 interface FilmDrawerProps {
   isOpen: boolean;
@@ -89,23 +90,21 @@ export const FilmDrawer: React.FC<FilmDrawerProps> = ({
                 className="film-poster-card flex flex-col group"
               >
                 <div className="relative aspect-[2/3] w-full bg-[#1b2026] overflow-hidden">
-                  {film.metadata?.posterPath ? (
-                    <img
-                      src={`${CONFIG.tmdbImageBase}/w342${film.metadata.posterPath}`}
-                      alt={film.name}
-                      className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
-                      loading="lazy"
-                    />
-                  ) : (
-                    <div className="flex h-full w-full flex-col items-center justify-center p-3 text-center bg-[#222831]">
-                      <span className="text-xs font-semibold text-[#ccdde6] line-clamp-2">
-                        {film.name}
-                      </span>
-                      {film.year && (
-                        <span className="text-[10px] text-[#99aabb] mt-1">{film.year}</span>
-                      )}
-                    </div>
-                  )}
+                  <PosterImage
+                    src={film.metadata?.posterPath ? `${CONFIG.tmdbImageBase}/w342${film.metadata.posterPath}` : null}
+                    alt={film.name}
+                    className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                    fallbackIcon={
+                      <div className="flex h-full w-full flex-col items-center justify-center p-3 text-center bg-[#222831]">
+                        <span className="text-xs font-semibold text-[#ccdde6] line-clamp-2">
+                          {film.name}
+                        </span>
+                        {film.year && (
+                          <span className="text-[10px] text-[#99aabb] mt-1">{film.year}</span>
+                        )}
+                      </div>
+                    }
+                  />
 
                   {/* Rating badge overlay */}
                   {film.rating !== undefined && (

@@ -4,6 +4,7 @@ import { RatingsHistogram } from '../charts/RatingsHistogram.tsx';
 import { formatRating, formatRatingDelta } from '../../services/analytics/statistical.ts';
 import { Star, Repeat, Heart } from 'lucide-react';
 import { CONFIG } from '../../config/env.ts';
+import { PosterImage } from '../common/PosterImage.tsx';
 
 interface S4RatingsSectionProps {
   ratings: S4Ratings;
@@ -199,18 +200,16 @@ export const S4RatingsSection: React.FC<S4RatingsSectionProps> = ({
                 className="film-poster-card group relative aspect-[2/3] w-full overflow-hidden rounded bg-[#14181c] focus:outline-none"
                 title={film.name}
               >
-                {film.metadata?.posterPath ? (
-                  <img
-                    src={`${CONFIG.tmdbImageBase}/w185${film.metadata.posterPath}`}
-                    alt={film.name}
-                    className="h-full w-full object-cover group-hover:scale-105 transition-transform"
-                    loading="lazy"
-                  />
-                ) : (
-                  <div className="flex h-full w-full items-center justify-center p-1 text-[8px] text-[#99aabb] text-center">
-                    {film.name}
-                  </div>
-                )}
+                <PosterImage
+                  src={film.metadata?.posterPath ? `${CONFIG.tmdbImageBase}/w185${film.metadata.posterPath}` : null}
+                  alt={film.name}
+                  className="h-full w-full object-cover group-hover:scale-105 transition-transform"
+                  fallbackIcon={
+                    <div className="flex h-full w-full items-center justify-center p-1 text-[8px] text-[#99aabb] text-center">
+                      {film.name}
+                    </div>
+                  }
+                />
               </button>
             ))}
           </div>

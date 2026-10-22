@@ -2,6 +2,7 @@ import React from 'react';
 import { S9GenresDecades } from '../../services/analytics/types.ts';
 import { Layers, Calendar, Star } from 'lucide-react';
 import { CONFIG } from '../../config/env.ts';
+import { PosterImage } from '../common/PosterImage.tsx';
 
 interface S9GenresDecadesSectionProps {
   genresDecades: S9GenresDecades;
@@ -97,13 +98,11 @@ export const S9GenresDecadesSection: React.FC<S9GenresDecadesSectionProps> = ({
               Earliest Release Year Watched
             </div>
             <div className="flex items-center space-x-3">
-              {genresDecades.oldestFilms[0].metadata?.posterPath && (
-                <img
-                  src={`${CONFIG.tmdbImageBase}/w92${genresDecades.oldestFilms[0].metadata.posterPath}`}
-                  alt={genresDecades.oldestFilms[0].name}
-                  className="h-16 w-11 rounded object-cover border border-[#2c3440]"
-                />
-              )}
+              <PosterImage
+                src={genresDecades.oldestFilms[0].metadata?.posterPath ? `${CONFIG.tmdbImageBase}/w92${genresDecades.oldestFilms[0].metadata.posterPath}` : null}
+                alt={genresDecades.oldestFilms[0].name}
+                className="h-16 w-11 rounded object-cover border border-[#2c3440]"
+              />
               <div>
                 <button
                   onClick={() => onSelectFilm(genresDecades.oldestFilms[0].letterboxdUri)}
@@ -126,13 +125,11 @@ export const S9GenresDecadesSection: React.FC<S9GenresDecadesSectionProps> = ({
               Most Recent Release Year Watched
             </div>
             <div className="flex items-center space-x-3">
-              {genresDecades.newestFilms[0].metadata?.posterPath && (
-                <img
-                  src={`${CONFIG.tmdbImageBase}/w92${genresDecades.newestFilms[0].metadata.posterPath}`}
-                  alt={genresDecades.newestFilms[0].name}
-                  className="h-16 w-11 rounded object-cover border border-[#2c3440]"
-                />
-              )}
+              <PosterImage
+                src={genresDecades.newestFilms[0].metadata?.posterPath ? `${CONFIG.tmdbImageBase}/w92${genresDecades.newestFilms[0].metadata.posterPath}` : null}
+                alt={genresDecades.newestFilms[0].name}
+                className="h-16 w-11 rounded object-cover border border-[#2c3440]"
+              />
               <div>
                 <button
                   onClick={() => onSelectFilm(genresDecades.newestFilms[0].letterboxdUri)}

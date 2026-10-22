@@ -3,6 +3,7 @@ import { Film, TmdbMatchCandidate } from '../../types/domain.ts';
 import { Check, Search, X, AlertCircle } from 'lucide-react';
 import { tmdbClient } from '../../services/tmdb/client.ts';
 import { CONFIG } from '../../config/env.ts';
+import { PosterImage } from '../common/PosterImage.tsx';
 
 interface ReviewMatchesModalProps {
   films: Record<string, Film>;
@@ -181,18 +182,17 @@ export const ReviewMatchesModal: React.FC<ReviewMatchesModalProps> = ({
                   className="flex items-start justify-between rounded-lg border border-[#2c3440] bg-[#14181c] p-3 hover:border-[#00e054]/50 transition-colors"
                 >
                   <div className="flex space-x-3">
-                    {candidate.posterPath ? (
-                      <img
-                        src={`${CONFIG.tmdbImageBase}/w92${candidate.posterPath}`}
-                        alt={candidate.title}
-                        className="h-16 w-11 rounded object-cover border border-[#2c3440]"
-                        loading="lazy"
-                      />
-                    ) : (
-                      <div className="flex h-16 w-11 items-center justify-center rounded bg-[#222831] text-[10px] text-[#99aabb] text-center p-1">
-                        No poster
-                      </div>
-                    )}
+                    <PosterImage
+                      src={candidate.posterPath ? `${CONFIG.tmdbImageBase}/w92${candidate.posterPath}` : null}
+                      alt={candidate.title}
+                      className="h-16 w-11 rounded object-cover border border-[#2c3440] shrink-0"
+                      fallbackIcon={
+                        <div className="flex h-16 w-11 items-center justify-center rounded bg-[#222831] text-[10px] text-[#99aabb] text-center p-1">
+                          No poster
+                        </div>
+                      }
+                      loading="lazy"
+                    />
                     <div className="flex-1">
                       <div className="flex items-center space-x-2">
                         <span className="text-sm font-bold text-white">{candidate.title}</span>

@@ -10,9 +10,17 @@ import {
   AnalyticsSnapshot,
   TimeFilter,
   S1Snapshot,
-  S2Identity
+  S2Identity,
+  HeatmapDayCell
 } from '../analytics/types.ts';
 import { Film, Profile, TmdbMovieCompact } from '../../types/domain.ts';
+import {
+  parseCalendarDate,
+  addDays,
+  getWeekday,
+  getTodayCalendarDate,
+  isLeapYear
+} from '../../utils/date.ts';
 
 function createMockMovieMetadata(
   id: number,
@@ -119,6 +127,7 @@ export const CompactSharedSchema = z.object({
   ta: z.array(z.object({ n: safeString, c: z.number().int(), r: z.number() })).max(10),
   ff: z.array(z.object({ t: safeString, y: z.number().int().optional(), r: z.number().optional() })).max(10),
   ba: z.array(z.object({ id: safeString, n: safeString })).max(10),
+  ad: z.record(z.string(), z.number().int()).optional(),
   flt: z.object({ y: z.number().int().optional() }).optional()
 });
 
@@ -226,7 +235,8 @@ export const FullSharedSchema = z.object({
         lagBucket: safeString,
         count: z.number().int()
       })
-    )
+    ),
+    activityDates: z.record(z.string(), z.number().int()).optional()
   }),
   s4: z.object({
     histogram: z.array(
@@ -605,6 +615,11 @@ export function encodeSharedSnapshot(
   let rawObject: unknown;
 
   if (preset === 'compact') {
+    const compactActivityDates: Record<string, number> = {};
+    (snapshot.s3Volume.trailing365Calendar || []).forEach((c) => {
+      if (c.count > 0) compactActivityDates[c.date] = c.count;
+    });
+
     const compact: CompactSharedPayload = {
       v: 1,
       type: 'compact',
@@ -628,10 +643,21 @@ export function encodeSharedSnapshot(
       ta: snapshot.s7People.actors.slice(0, 5).map((a) => ({ n: a.person.name, c: a.count, r: a.avgRating })),
       ff: snapshot.s4Ratings.topRatedFilms.slice(0, 5).map((f) => ({ t: f.name, y: f.year, r: f.rating })),
       ba: snapshot.s2Identity.archetypes.filter((a) => a.achieved).slice(0, 3).map((a) => ({ id: a.id, n: a.name })),
+      ad: Object.keys(compactActivityDates).length > 0 ? compactActivityDates : undefined,
       flt: snapshot.filter.selectedYear ? { y: snapshot.filter.selectedYear } : undefined
     };
     rawObject = compact;
   } else {
+    const fullActivityDates: Record<string, number> = {};
+    (snapshot.s3Volume.trailing365Calendar || []).forEach((c) => {
+      if (c.count > 0) fullActivityDates[c.date] = c.count;
+    });
+    Object.values(snapshot.s3Volume.yearlyCalendars || {}).forEach((cells) => {
+      cells.forEach((c) => {
+        if (c.count > 0) fullActivityDates[c.date] = c.count;
+      });
+    });
+
     const full: FullSharedPayload = {
       v: 1,
       type: 'full',
@@ -655,7 +681,8 @@ export function encodeSharedSnapshot(
           count: m.count,
           runtimeMinutes: m.runtimeMinutes
         })),
-        backlogLoggingLag: snapshot.s3Volume.backlogLoggingLag
+        backlogLoggingLag: snapshot.s3Volume.backlogLoggingLag,
+        activityDates: Object.keys(fullActivityDates).length > 0 ? fullActivityDates : undefined
       },
       s4: {
         histogram: snapshot.s4Ratings.histogram,
@@ -944,6 +971,63 @@ export async function decompressSharedSnapshotAsync(
 // Adapter: Shared Payload to Renderable State
 // ---------------------------------------------------------------------------
 
+function reconstructCalendars(
+  activityDates: Record<string, number> = {},
+  years: number[] = []
+): {
+  trailing365Calendar: HeatmapDayCell[];
+  yearlyCalendars: Record<number, HeatmapDayCell[]>;
+} {
+  const todayStr = getTodayCalendarDate();
+  const trailing365Calendar: HeatmapDayCell[] = [];
+  const startTrailing = addDays(todayStr, -364);
+
+  for (let i = 0; i < 365; i++) {
+    const d = addDays(startTrailing, i);
+    const count = activityDates[d] || 0;
+    const p = parseCalendarDate(d) || { year: 2024, month: 1, day: 1 };
+    trailing365Calendar.push({
+      date: d,
+      count,
+      weekday: getWeekday(d),
+      month: p.month,
+      year: p.year,
+      filmKeys: []
+    });
+  }
+
+  const yearSet = new Set<number>(years);
+  Object.keys(activityDates).forEach((d) => {
+    const yr = parseInt(d.slice(0, 4), 10);
+    if (!isNaN(yr) && yr >= 1900 && yr <= 2100) {
+      yearSet.add(yr);
+    }
+  });
+
+  const yearlyCalendars: Record<number, HeatmapDayCell[]> = {};
+  Array.from(yearSet).sort((a, b) => a - b).forEach((year) => {
+    const daysInYr = isLeapYear(year) ? 366 : 365;
+    const startYr = `${year}-01-01`;
+    const yrCells: HeatmapDayCell[] = [];
+    for (let i = 0; i < daysInYr; i++) {
+      const d = addDays(startYr, i);
+      const count = activityDates[d] || 0;
+      const p = parseCalendarDate(d) || { year, month: 1, day: 1 };
+      yrCells.push({
+        date: d,
+        count,
+        weekday: getWeekday(d),
+        month: p.month,
+        year: p.year,
+        filmKeys: []
+      });
+    }
+    yearlyCalendars[year] = yrCells;
+  });
+
+  return { trailing365Calendar, yearlyCalendars };
+}
+
 export function sharedPayloadToSnapshot(payload: SharedPayload): {
   snapshot: AnalyticsSnapshot;
   profile: Profile;
@@ -1074,6 +1158,11 @@ export function sharedPayloadToSnapshot(payload: SharedPayload): {
       newestFilms: []
     };
 
+    const { trailing365Calendar, yearlyCalendars } = reconstructCalendars(
+      payload.ad,
+      payload.flt?.y ? [payload.flt.y] : []
+    );
+
     const snapshot: AnalyticsSnapshot = {
       calculatedAt: Date.now(),
       filter: { range: payload.flt?.y ? 'year' : 'all', selectedYear: payload.flt?.y },
@@ -1084,8 +1173,8 @@ export function sharedPayloadToSnapshot(payload: SharedPayload): {
         yearMonthMatrix: [],
         monthSeasonality: [],
         weekdayDistribution: [],
-        trailing365Calendar: [],
-        yearlyCalendars: {},
+        trailing365Calendar,
+        yearlyCalendars,
         streaks: {
           currentStreakDays: 0,
           isCurrentStreakActive: false,
@@ -1189,6 +1278,11 @@ export function sharedPayloadToSnapshot(payload: SharedPayload): {
     }
   });
 
+  const { trailing365Calendar, yearlyCalendars } = reconstructCalendars(
+    payload.s3.activityDates,
+    payload.s3.yearlyVolume.map((y) => y.year)
+  );
+
   const snapshot: AnalyticsSnapshot = {
     calculatedAt: Date.now(),
     filter: payload.filter as TimeFilter,
@@ -1203,8 +1297,8 @@ export function sharedPayloadToSnapshot(payload: SharedPayload): {
       yearMonthMatrix: payload.s3.yearMonthMatrix,
       monthSeasonality: payload.s3.monthSeasonality,
       weekdayDistribution: payload.s3.weekdayDistribution,
-      trailing365Calendar: [],
-      yearlyCalendars: {},
+      trailing365Calendar,
+      yearlyCalendars,
       streaks: payload.s3.streaks,
       busiestDay: null,
       busiestMonth: null,

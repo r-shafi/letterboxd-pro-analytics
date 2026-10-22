@@ -3,6 +3,7 @@ import { S12Watchlist } from '../../services/analytics/types.ts';
 import { Film } from '../../types/domain.ts';
 import { Bookmark, Sparkles, Shuffle, Star, Clock } from 'lucide-react';
 import { CONFIG } from '../../config/env.ts';
+import { PosterImage } from '../common/PosterImage.tsx';
 
 interface S12WatchlistSectionProps {
   watchlist: S12Watchlist;
@@ -125,16 +126,12 @@ export const S12WatchlistSection: React.FC<S12WatchlistSectionProps> = ({
               className="flex flex-col sm:flex-row sm:items-center justify-between rounded-lg border border-[#2c3440] bg-[#14181c] p-3 hover:border-[#00e054]/50 transition-colors gap-3"
             >
               <div className="flex items-center space-x-3 truncate">
-                {film.metadata?.posterPath ? (
-                  <img
-                    src={`${CONFIG.tmdbImageBase}/w92${film.metadata.posterPath}`}
-                    alt={film.name}
-                    className="h-14 w-10 rounded object-cover border border-[#2c3440]"
-                    loading="lazy"
-                  />
-                ) : (
-                  <div className="h-14 w-10 rounded bg-[#222831]" />
-                )}
+                <PosterImage
+                  src={film.metadata?.posterPath ? `${CONFIG.tmdbImageBase}/w92${film.metadata.posterPath}` : null}
+                  alt={film.name}
+                  className="h-14 w-10 rounded object-cover border border-[#2c3440]"
+                  fallbackIcon={<div className="h-14 w-10 rounded bg-[#222831]" />}
+                />
 
                 <div className="truncate">
                   <button

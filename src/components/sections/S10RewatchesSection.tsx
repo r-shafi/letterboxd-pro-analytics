@@ -2,6 +2,7 @@ import React from 'react';
 import { S10Rewatches } from '../../services/analytics/types.ts';
 import { Repeat } from 'lucide-react';
 import { CONFIG } from '../../config/env.ts';
+import { PosterImage } from '../common/PosterImage.tsx';
 
 interface S10RewatchesSectionProps {
   rewatches: S10Rewatches;
@@ -50,15 +51,12 @@ export const S10RewatchesSection: React.FC<S10RewatchesSectionProps> = ({
                 className="flex w-full items-center justify-between rounded-lg border border-[#2c3440] bg-[#14181c] p-2 hover:border-[#00e054] text-left transition-colors"
               >
                 <div className="flex items-center space-x-3 truncate">
-                  {film.metadata?.posterPath ? (
-                    <img
-                      src={`${CONFIG.tmdbImageBase}/w92${film.metadata.posterPath}`}
-                      alt={film.name}
-                      className="h-10 w-7 rounded object-cover border border-[#2c3440]"
-                    />
-                  ) : (
-                    <div className="h-10 w-7 rounded bg-[#222831]" />
-                  )}
+                  <PosterImage
+                    src={film.metadata?.posterPath ? `${CONFIG.tmdbImageBase}/w92${film.metadata.posterPath}` : null}
+                    alt={film.name}
+                    className="h-10 w-7 rounded object-cover border border-[#2c3440]"
+                    fallbackIcon={<div className="h-10 w-7 rounded bg-[#222831]" />}
+                  />
                   <div className="truncate">
                     <span className="text-xs font-bold text-white truncate block">{film.name}</span>
                     <span className="text-[10px] text-[#99aabb]">{film.year}</span>

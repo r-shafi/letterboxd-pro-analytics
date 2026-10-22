@@ -18,12 +18,12 @@ const DEMO_DIRECTORS: TmdbPersonCompact[] = [
 ];
 
 const DEMO_ACTORS: TmdbPersonCompact[] = [
-  { id: 101, name: 'Timothée Chalamet', character: 'Paul Atreides', order: 0 },
-  { id: 102, name: 'Saoirse Ronan', character: 'Jo March', order: 0 },
-  { id: 103, name: 'Florence Pugh', character: 'Amy March', order: 1 },
-  { id: 104, name: 'Song Kang-ho', character: 'Kim Ki-taek', order: 0 },
-  { id: 105, name: 'Christian Bale', character: 'Bruce Wayne', order: 0 },
-  { id: 106, name: 'Zendaya', character: 'Chani', order: 1 }
+  { id: 101, name: 'Timothée Chalamet', character: 'Paul Atreides', order: 0, gender: 2 },
+  { id: 102, name: 'Saoirse Ronan', character: 'Jo March', order: 0, gender: 1 },
+  { id: 103, name: 'Florence Pugh', character: 'Amy March', order: 1, gender: 1 },
+  { id: 104, name: 'Song Kang-ho', character: 'Kim Ki-taek', order: 0, gender: 2 },
+  { id: 105, name: 'Christian Bale', character: 'Bruce Wayne', order: 0, gender: 2 },
+  { id: 106, name: 'Zendaya', character: 'Chani', order: 1, gender: 1 }
 ];
 
 const DEMO_GENRES = [
