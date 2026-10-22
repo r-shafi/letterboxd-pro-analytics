@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { TasteAffinityGroup } from '../../services/analytics/types.ts';
+import { formatRating, formatRatingDelta } from '../../services/analytics/statistical.ts';
 
 interface TasteAffinityChartProps {
   genreAffinity: TasteAffinityGroup[];
@@ -61,7 +62,7 @@ export const TasteAffinityChart: React.FC<TasteAffinityChartProps> = ({
                 <div className="flex items-baseline justify-between">
                   <span className="font-semibold text-white truncate">{group.name}</span>
                   <span className="text-[10px] text-[#99aabb] font-mono">
-                    n={group.n} • {group.shrunkMean}★
+                    n={group.n} • {formatRating(group.shrunkMean, 2)}
                   </span>
                 </div>
 
@@ -81,7 +82,7 @@ export const TasteAffinityChart: React.FC<TasteAffinityChartProps> = ({
                   isAbove ? 'bg-[#00e054]/10 text-[#00e054]' : 'bg-[#ff8000]/10 text-[#ff8000]'
                 }`}
               >
-                {isAbove ? `+${group.relativeToOverall}★` : `${group.relativeToOverall}★`}
+                {formatRatingDelta(group.relativeToOverall, 2)}
               </div>
             </div>
           );
@@ -89,7 +90,7 @@ export const TasteAffinityChart: React.FC<TasteAffinityChartProps> = ({
       </div>
 
       <div className="text-[10px] text-[#99aabb] text-center border-t border-[#2c3440] pt-2">
-        Affinities smoothed using Bayesian shrinkage (k=5) against your overall baseline ({overallMean}★).
+        Affinities smoothed using Bayesian shrinkage (k=5) against your overall baseline ({formatRating(overallMean, 2)}).
       </div>
     </div>
   );

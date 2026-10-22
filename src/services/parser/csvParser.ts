@@ -152,6 +152,25 @@ export function processLetterboxdExport(files: Map<string, string>): IngestionSt
   let profile: Profile | undefined = undefined;
 
   let ratingConflictsResolved = 0;
+  const nameYearToCanonicalUri = new Map<string, string>();
+  const collisions: Array<{ title: string; year?: number; uris: string[] }> = [];
+
+  const getNameYearKey = (name: string, yearStr?: string): string => {
+    const normName = name.trim().toLowerCase();
+    const yr = yearStr ? parseInt(yearStr, 10) || '' : '';
+    return `${normName}::${yr}`;
+  };
+
+  const registerCanonicalUri = (uri: string, name: string, yearStr?: string) => {
+    const key = getNameYearKey(name, yearStr);
+    const existing = nameYearToCanonicalUri.get(key);
+    if (existing && existing !== uri) {
+      const yr = yearStr ? parseInt(yearStr, 10) || undefined : undefined;
+      collisions.push({ title: name, year: yr, uris: [existing, uri] });
+    } else {
+      nameYearToCanonicalUri.set(key, uri);
+    }
+  };
 
   // Helper to ensure film exists in index
   const getOrCreateFilm = (uri: string, name: string, yearStr?: string): Film => {
@@ -212,6 +231,7 @@ export function processLetterboxdExport(files: Map<string, string>): IngestionSt
       const uri = r['letterboxd uri'];
       const name = r['name'];
       if (uri && name) {
+        registerCanonicalUri(uri, name, r['year']);
         const film = getOrCreateFilm(uri, name, r['year']);
         film.watched = true;
         accepted++;
@@ -235,6 +255,7 @@ export function processLetterboxdExport(files: Map<string, string>): IngestionSt
       const name = r['name'];
       const ratingVal = parseFloat(r['rating'] || '0');
       if (uri && name && !isNaN(ratingVal) && ratingVal > 0) {
+        registerCanonicalUri(uri, name, r['year']);
         const film = getOrCreateFilm(uri, name, r['year']);
         film.rating = ratingVal;
         film.watched = true; // rating implies watched
@@ -258,6 +279,7 @@ export function processLetterboxdExport(files: Map<string, string>): IngestionSt
       const uri = r['letterboxd uri'];
       const name = r['name'];
       if (uri && name) {
+        registerCanonicalUri(uri, name, r['year']);
         const film = getOrCreateFilm(uri, name, r['year']);
         film.onWatchlist = true;
         const wlDate = r['date'];
@@ -284,6 +306,7 @@ export function processLetterboxdExport(files: Map<string, string>): IngestionSt
       const uri = r['letterboxd uri'];
       const name = r['name'];
       if (uri && name) {
+        registerCanonicalUri(uri, name, r['year']);
         const film = getOrCreateFilm(uri, name, r['year']);
         film.liked = true;
         accepted++;
@@ -297,19 +320,23 @@ export function processLetterboxdExport(files: Map<string, string>): IngestionSt
     });
   }
 
-  // 6. Preload reviews map: key = `${uri}::${watchedDate || loggedDate}`
+  // 6. Preload reviews map: key = `${canonicalFilmUri}::${watchedDate || loggedDate}`
   const reviewsMap = new Map<string, string>();
   const reviewsContent = files.get('reviews.csv');
   let reviewsCount = 0;
   if (reviewsContent) {
     const rows = parseCsvRows(reviewsContent);
     rows.forEach((r) => {
-      const uri = r['letterboxd uri'];
+      const name = r['name'];
       const reviewText = r['review'];
       const dateKey = r['watched date'] || r['date'];
-      if (uri && reviewText) {
-        reviewsMap.set(`${uri}::${dateKey}`, reviewText);
-        reviewsCount++;
+      if (name && reviewText) {
+        const key = getNameYearKey(name, r['year']);
+        const canonicalUri = nameYearToCanonicalUri.get(key) || r['letterboxd uri'];
+        if (canonicalUri) {
+          reviewsMap.set(`${canonicalUri}::${dateKey}`, reviewText);
+          reviewsCount++;
+        }
       }
     });
     fileReports.push({
@@ -326,11 +353,20 @@ export function processLetterboxdExport(files: Map<string, string>): IngestionSt
     const rows = parseCsvRows(diaryContent);
     let accepted = 0;
     rows.forEach((r, idx) => {
-      const uri = r['letterboxd uri'];
-      const name = r['name'];
-      if (!uri || !name) return;
+      const rawLogUri = r['letterboxd uri']?.trim();
+      const name = r['name']?.trim();
+      if (!name) return;
 
-      const film = getOrCreateFilm(uri, name, r['year']);
+      const key = getNameYearKey(name, r['year']);
+      let canonicalUri = nameYearToCanonicalUri.get(key);
+
+      if (!canonicalUri) {
+        // Diary-only film (not in watched, ratings, likes, or watchlist)
+        canonicalUri = rawLogUri || `boxd:synth_${key}`;
+        nameYearToCanonicalUri.set(key, canonicalUri);
+      }
+
+      const film = getOrCreateFilm(canonicalUri, name, r['year']);
       film.watched = true;
 
       // Watched Date vs Date
@@ -367,11 +403,12 @@ export function processLetterboxdExport(files: Map<string, string>): IngestionSt
       const tags = r['tags'] ? r['tags'].split(',').map((t) => t.trim()).filter(Boolean) : [];
 
       // Link review if exists
-      const review = reviewsMap.get(`${uri}::${rawWatchedDate || rawLoggedDate}`) || reviewsMap.get(`${uri}::${rawLoggedDate}`);
+      const review = reviewsMap.get(`${canonicalUri}::${rawWatchedDate || rawLoggedDate}`) ||
+                     reviewsMap.get(`${canonicalUri}::${rawLoggedDate}`);
 
       entries.push({
-        entryId: `entry_${idx}_${uri.replace(/[^a-zA-Z0-9]/g, '')}`,
-        filmKey: uri,
+        entryId: rawLogUri || `entry_${idx}_${canonicalUri.replace(/[^a-zA-Z0-9]/g, '')}`,
+        filmKey: canonicalUri,
         watchedDate,
         isApproximate,
         loggedDate,
@@ -449,7 +486,8 @@ export function processLetterboxdExport(files: Map<string, string>): IngestionSt
     filmsOnWatchlist: allFilms.filter((f) => f.onWatchlist).length,
     filmsLiked: allFilms.filter((f) => f.liked).length,
     filmsDateUnknown,
-    ratingConflictsResolved
+    ratingConflictsResolved,
+    collisions: collisions.length > 0 ? collisions : undefined
   };
 
   return {

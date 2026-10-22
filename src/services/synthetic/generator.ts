@@ -74,6 +74,7 @@ export function generateSyntheticExportFiles(options: SyntheticExportOptions): R
       rewatch: boolean;
       tags: string;
       review?: string;
+      logUri: string;
     }>;
   }
 
@@ -112,13 +113,15 @@ export function generateSyntheticExportFiles(options: SyntheticExportOptions): R
           review = `A masterpiece, truly.\n"Cinema at its finest", with extraordinary direction.\nHighly recommended.`;
         }
 
+        const logUri = `https://boxd.it/log_${i}_${e}`;
         diaryEntries.push({
           date: loggedDate,
           watchedDate,
           rating: entryRating,
           rewatch: e > 0,
           tags: i % 2 === 0 ? 'cinema, favorites' : 'streamed',
-          review
+          review,
+          logUri
         });
       }
     }
@@ -184,7 +187,7 @@ export function generateSyntheticExportFiles(options: SyntheticExportOptions): R
       if (entry.review) {
         const escapedRev = `"${entry.review.replace(/"/g, '""')}"`;
         reviewsLines.push(
-          `${entry.date},"${f.name.replace(/"/g, '""')}",${f.year},${f.uri},${entry.rating || ''},${entry.rewatch ? 'Yes' : ''},${escapedRev},"${entry.tags}",${entry.watchedDate}`
+          `${entry.date},"${f.name.replace(/"/g, '""')}",${f.year},${entry.logUri},${entry.rating || ''},${entry.rewatch ? 'Yes' : ''},${escapedRev},"${entry.tags}",${entry.watchedDate}`
         );
       }
     });
@@ -196,7 +199,7 @@ export function generateSyntheticExportFiles(options: SyntheticExportOptions): R
   films.forEach((f) => {
     f.diaryEntries.forEach((entry) => {
       diaryLines.push(
-        `${entry.date},"${f.name.replace(/"/g, '""')}",${f.year},${f.uri},${entry.rating || ''},${entry.rewatch ? 'Yes' : ''},"${entry.tags}",${entry.watchedDate}`
+        `${entry.date},"${f.name.replace(/"/g, '""')}",${f.year},${entry.logUri},${entry.rating || ''},${entry.rewatch ? 'Yes' : ''},"${entry.tags}",${entry.watchedDate}`
       );
     });
   });

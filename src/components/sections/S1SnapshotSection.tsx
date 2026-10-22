@@ -2,6 +2,7 @@ import React from 'react';
 import { S1Snapshot } from '../../services/analytics/types.ts';
 import { Profile, Film } from '../../types/domain.ts';
 import { formatWatchDuration } from '../../utils/date.ts';
+import { formatRating } from '../../services/analytics/statistical.ts';
 import { CONFIG } from '../../config/env.ts';
 import { Film as FilmIcon, Clock, Star, Heart, Repeat, MessageSquare, Globe, User, Compass } from 'lucide-react';
 
@@ -130,7 +131,11 @@ export const S1SnapshotSection: React.FC<S1SnapshotSectionProps> = ({
             {duration.compact}
           </div>
           <div className="mt-1 text-[11px] text-[#99aabb] truncate">
-            {duration.detailed}
+            {snapshot.runtimeCoveragePercent === 100
+              ? duration.detailed
+              : snapshot.runtimeCoveragePercent === 0
+                ? 'Loading runtimes from TMDb...'
+                : `${duration.detailed} (${snapshot.runtimeCoveragePercent}% runtime coverage)`}
           </div>
         </div>
 
@@ -141,7 +146,7 @@ export const S1SnapshotSection: React.FC<S1SnapshotSectionProps> = ({
             <Star className="h-4 w-4 text-[#00e054] fill-[#00e054]" />
           </div>
           <div className="mt-2 font-display text-3xl font-extrabold text-white">
-            {snapshot.averageRating > 0 ? `${snapshot.averageRating}★` : 'N/A'}
+            {formatRating(snapshot.averageRating, 2)}
           </div>
           <div className="mt-1 text-[11px] text-[#99aabb]">
             {snapshot.ratedFilmsCount} rated ({snapshot.ratingCoveragePercent}%)

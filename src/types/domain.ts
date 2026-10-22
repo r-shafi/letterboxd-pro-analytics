@@ -140,6 +140,7 @@ export interface ImportReport {
   filmsLiked: number;
   filmsDateUnknown: number;
   ratingConflictsResolved: number;
+  collisions?: Array<{ title: string; year?: number; uris: string[] }>;
 }
 
 export interface IngestionState {

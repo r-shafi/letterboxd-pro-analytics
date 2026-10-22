@@ -1,5 +1,6 @@
 import React from 'react';
 import { CrowdScatterPoint } from '../../services/analytics/types.ts';
+import { formatRatingDelta } from '../../services/analytics/statistical.ts';
 import { TrendingUp, TrendingDown } from 'lucide-react';
 import { CONFIG } from '../../config/env.ts';
 
@@ -34,7 +35,7 @@ export const CrowdScatter: React.FC<CrowdScatterProps> = ({
         <div className="rounded-lg border border-[#2c3440] bg-[#14181c] p-3 text-center">
           <div className="text-xs text-[#99aabb]">Generosity Index</div>
           <div className="mt-1 font-display text-xl font-bold text-[#00e054]">
-            {meanDelta > 0 ? `+${meanDelta.toFixed(1)}★` : `${meanDelta.toFixed(1)}★`}
+            {formatRatingDelta(meanDelta, 2)}
           </div>
           <div className="text-[10px] text-[#99aabb]/60 mt-0.5">Mean rating delta vs crowd</div>
         </div>
@@ -84,7 +85,7 @@ export const CrowdScatter: React.FC<CrowdScatterProps> = ({
                 </div>
 
                 <div className="ml-2 rounded bg-[#00e054]/10 px-2 py-0.5 text-xs font-bold text-[#00e054] border border-[#00e054]/20">
-                  +{point.delta.toFixed(1)}★
+                  +{point.delta.toFixed(2)}★
                 </div>
               </button>
             ))}
@@ -125,7 +126,7 @@ export const CrowdScatter: React.FC<CrowdScatterProps> = ({
                 </div>
 
                 <div className="ml-2 rounded bg-[#ff8000]/10 px-2 py-0.5 text-xs font-bold text-[#ff8000] border border-[#ff8000]/20">
-                  {point.delta.toFixed(1)}★
+                  {point.delta.toFixed(2)}★
                 </div>
               </button>
             ))}

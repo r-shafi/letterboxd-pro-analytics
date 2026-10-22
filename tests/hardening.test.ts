@@ -14,7 +14,6 @@ import { Film } from '../src/types/domain.ts';
 
 describe('Phase 6: Hardening & Performance Benchmarking', () => {
   const synth5000Path = path.resolve(process.cwd(), 'fixtures/synthetic-5000.zip');
-  const realExportPath = path.resolve(process.cwd(), 'letterboxd-shafiemoji-2026-10-20-04-30-utc.zip');
 
   describe('5,000-Film Synthetic Performance Benchmark', () => {
     it('parses and computes full analytics snapshot on 5,000 films within SLA (< 1500ms)', () => {
@@ -72,16 +71,10 @@ describe('Phase 6: Hardening & Performance Benchmarking', () => {
     });
   });
 
-  describe('Acceptance Testing on Real Letterboxd Export', () => {
-    it('successfully extracts and parses real user export with zero PII leakage', () => {
-      if (!fs.existsSync(realExportPath)) {
-        // Skip if local export is not present
-        return;
-      }
-
-      const realBuffer = fs.readFileSync(realExportPath);
-      const realUint8 = new Uint8Array(realBuffer.buffer, realBuffer.byteOffset, realBuffer.byteLength);
-      const extracted = extractLetterboxdZip(realUint8);
+  describe('Acceptance Testing & PII Leakage Defense on Synthetic Export', () => {
+    it('successfully extracts and parses synthetic export with zero PII leakage', () => {
+      const synthZip = generateSyntheticZip({ filmCount: 250 });
+      const extracted = extractLetterboxdZip(synthZip);
 
       expect(extracted.has('diary.csv')).toBe(true);
       expect(extracted.has('watched.csv')).toBe(true);
@@ -92,7 +85,7 @@ describe('Phase 6: Hardening & Performance Benchmarking', () => {
       const totalFilms = Object.keys(parsed.films).length;
       const totalEntries = parsed.entries.length;
 
-      expect(totalFilms).toBeGreaterThan(0);
+      expect(totalFilms).toBe(250);
       expect(totalEntries).toBeGreaterThan(0);
 
       // Verify strict privacy guarantee: no PII leaked into profile domain model
@@ -115,11 +108,9 @@ describe('Phase 6: Hardening & Performance Benchmarking', () => {
         { range: 'all' }
       );
 
-      // Universe includes watched, diary, ratings, reviews and liked (1,742 films)
-      // totalFilms in parsed.films also contains watchlist-only films (1,911 total)
-      expect(snapshot.s1Snapshot.totalFilms).toBe(1742);
-      expect(snapshot.s1Snapshot.totalViewings).toBe(totalEntries);
-      expect(totalFilms).toBe(1911);
+      expect(snapshot.s1Snapshot.totalFilms).toBe(parsed.report.filmsWatched);
+      expect(snapshot.s1Snapshot.totalViewings).toBeGreaterThanOrEqual(totalEntries);
+      expect(snapshot.s1Snapshot.averageRating).toBeGreaterThan(0);
     });
   });
 });

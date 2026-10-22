@@ -170,44 +170,84 @@ export const useIngestionStore = create<IngestionStore>((set, get) => ({
     let completedCount = 0;
     const total = filmList.length;
 
-    // Filter films that still need matching
-    const filmsToMatch = filmList.filter((f) => f.match.status === 'unmatched' && !f.metadata);
+    // Filter films that still need matching or enrichment
+    const filmsToProcess = filmList.filter(
+      (f) => f.match.status === 'unmatched' || (f.match.status === 'confident' && f.match.tmdbId && !f.metadata)
+    );
 
-    // 1. Matching phase
-    for (const film of filmsToMatch) {
-      if (get().status === 'paused' || get().status === 'idle') break;
+    const alreadyDone = total - filmsToProcess.length;
+    completedCount = alreadyDone;
 
-      try {
-        const matchResult = await tmdbClient.matchFilm(film.name, film.year);
-        film.match = matchResult;
+    const queue = [...filmsToProcess];
+    const CONCURRENCY = 12;
+    let lastPersist = Date.now();
+    let lastStateUpdate = 0;
 
-        // If confident match, immediately queue Tier-1 enrichment
-        if (matchResult.status === 'confident' && matchResult.tmdbId) {
-          const meta = await tmdbClient.enrichMovie(matchResult.tmdbId);
-          film.metadata = meta;
+    const worker = async () => {
+      while (queue.length > 0) {
+        if (get().status === 'paused' || get().status === 'idle') break;
+        const film = queue.shift();
+        if (!film) break;
+
+        try {
+          if (film.match.status === 'unmatched') {
+            const matchResult = await tmdbClient.matchFilm(film.name, film.year);
+            film.match = matchResult;
+          }
+
+          if (film.match.status === 'confident' && film.match.tmdbId && !film.metadata) {
+            const meta = await tmdbClient.enrichMovie(film.match.tmdbId);
+            film.metadata = meta;
+          }
+        } catch {
+          // Continue despite single film lookup failure
         }
-      } catch {
-        // Continue despite single film lookup failure
+
+        completedCount++;
+        const now = Date.now();
+        const elapsedSec = (now - startTime) / 1000;
+        const speed = elapsedSec > 0 ? (completedCount - alreadyDone) / elapsedSec : 0;
+        const remaining = total - completedCount;
+        const etaSeconds = speed > 0 ? Math.round(remaining / speed) : 0;
+
+        // Periodic batch persistence every 50 films or every 5 seconds
+        if (now - lastPersist > 5000 || completedCount % 50 === 0) {
+          lastPersist = now;
+          storage.setItem('data:films', get().films).catch(() => {});
+          tmdbClient.persistCaches().catch(() => {});
+        }
+
+        // Throttle UI progress update to ~100ms
+        if (now - lastStateUpdate > 100 || completedCount === total) {
+          lastStateUpdate = now;
+          set((state) => ({
+            films: { ...state.films, [film.letterboxdUri]: { ...film } },
+            progress: {
+              phaseText: `Matching & enriching films (${completedCount}/${total})...`,
+              total,
+              current: completedCount,
+              percent: Math.round((completedCount / total) * 100),
+              speed: Math.round(speed * 10) / 10,
+              etaSeconds
+            }
+          }));
+        } else {
+          get().films[film.letterboxdUri] = { ...film };
+        }
       }
+    };
 
-      completedCount++;
-      const elapsedSec = (Date.now() - startTime) / 1000;
-      const speed = elapsedSec > 0 ? completedCount / elapsedSec : 0;
-      const remaining = total - completedCount;
-      const etaSeconds = speed > 0 ? Math.round(remaining / speed) : 0;
+    const workerPromises = Array.from(
+      { length: Math.min(CONCURRENCY, queue.length) },
+      () => worker()
+    );
+    await Promise.all(workerPromises);
 
-      // Update progress
-      set((state) => ({
-        films: { ...state.films, [film.letterboxdUri]: { ...film } },
-        progress: {
-          phaseText: `Matching films (${completedCount}/${total})...`,
-          total,
-          current: completedCount,
-          percent: Math.round((completedCount / total) * 100),
-          speed: Math.round(speed * 10) / 10,
-          etaSeconds
-        }
-      }));
+    // If paused or canceled during loop, persist current progress and exit
+    if (get().status === 'paused' || get().status === 'idle') {
+      await storage.setItem('data:films', get().films);
+      await tmdbClient.persistCaches();
+      return;
     }
 
     // Persist final matched state and caches

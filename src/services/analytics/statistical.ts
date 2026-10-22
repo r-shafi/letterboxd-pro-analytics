@@ -112,8 +112,36 @@ export function normalizedShannonEntropy(counts: number[]): number {
 }
 
 /**
- * Formats decimal value to one decimal place consistently.
+ * Formats decimal value to one decimal place.
  */
 export function roundToOneDecimal(val: number): number {
   return Math.round(val * 10) / 10;
+}
+
+/**
+ * Rounds decimal value to two decimal places.
+ */
+export function roundToTwoDecimals(val: number): number {
+  return Math.round(val * 100) / 100;
+}
+
+/**
+ * Standard rating formatter ensuring consistent 2-decimal display with star symbol (e.g. "3.11★").
+ */
+export function formatRating(rating: number | undefined | null, decimals = 2): string {
+  if (rating === undefined || rating === null || isNaN(rating) || rating <= 0) {
+    return 'N/A';
+  }
+  return `${rating.toFixed(decimals)}★`;
+}
+
+/**
+ * Standard rating delta formatter (e.g. "+0.35★", "-0.12★").
+ */
+export function formatRatingDelta(delta: number | undefined | null, decimals = 2): string {
+  if (delta === undefined || delta === null || isNaN(delta)) {
+    return '0.00★';
+  }
+  const prefix = delta > 0 ? '+' : '';
+  return `${prefix}${delta.toFixed(decimals)}★`;
 }

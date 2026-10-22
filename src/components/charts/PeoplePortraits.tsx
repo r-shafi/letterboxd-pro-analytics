@@ -113,7 +113,7 @@ export const PeoplePortraits: React.FC<PeoplePortraitsProps> = ({
                   }`}
                 >
                   <Star className="h-2.5 w-2.5 fill-current" />
-                  <span>{item.avgRating.toFixed(1)}</span>
+                  <span>{item.avgRating.toFixed(2)}</span>
                 </div>
               )}
             </button>

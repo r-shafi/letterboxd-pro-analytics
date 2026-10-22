@@ -1,6 +1,7 @@
 import React from 'react';
 import { S6TasteProfile } from '../../services/analytics/types.ts';
 import { TasteAffinityChart } from '../charts/TasteAffinityChart.tsx';
+import { formatRating } from '../../services/analytics/statistical.ts';
 import { Compass, Clock } from 'lucide-react';
 
 interface S6TasteSectionProps {
@@ -76,7 +77,7 @@ export const S6TasteSection: React.FC<S6TasteSectionProps> = ({ taste, overallMe
                   <div className="flex items-center space-x-2">
                     <span className="text-[#99aabb] font-mono">{r.count} films</span>
                     {r.avgRating > 0 && (
-                      <span className="font-mono font-bold text-[#00e054]">{r.avgRating}★</span>
+                      <span className="font-mono font-bold text-[#00e054]">{formatRating(r.avgRating, 2)}</span>
                     )}
                   </div>
                 </div>

@@ -35,7 +35,8 @@ import {
   pearsonCorrelation,
   bayesianShrinkage,
   normalizedShannonEntropy,
-  roundToOneDecimal
+  roundToOneDecimal,
+  roundToTwoDecimals
 } from './statistical.ts';
 import {
   parseCalendarDate,
@@ -94,42 +95,59 @@ export function calculateAnalyticsSnapshot(
 
   const activeFilms = allFilms.filter((f) => activeFilmKeys.has(f.letterboxdUri));
 
-  // Count films with unknown watch dates
-  const dateUnknownCount = allFilms.filter((f) => f.watched && !f.letterboxdUri).length;
+  // Films with diary entries
+  const filmsWithAnyDiary = new Set(entriesList.map((e) => e.filmKey));
+  const dateUnknownCount = allFilms.filter((f) => f.watched && !filmsWithAnyDiary.has(f.letterboxdUri)).length;
 
   // -------------------------------------------------------------
   // S1. Snapshot
   // -------------------------------------------------------------
   let totalRuntimeMinutes = 0;
   let viewingsWithRuntime = 0;
-  const totalViewings = filteredEntries.length || activeFilms.length;
+  let totalPossibleViewings = 0;
 
-  // Calculate duration by viewings
-  if (filteredEntries.length > 0) {
+  if (filter.range === 'all') {
+    const diaryFilmKeys = new Set<string>();
     filteredEntries.forEach((e) => {
+      totalPossibleViewings++;
+      diaryFilmKeys.add(e.filmKey);
       const film = filmsRecord[e.filmKey];
       if (film?.metadata?.runtime && film.metadata.runtime > 0) {
         totalRuntimeMinutes += film.metadata.runtime;
         viewingsWithRuntime++;
       }
     });
-  } else {
+
+    // Add watched films that have no diary entry (1 viewing each)
     activeFilms.forEach((f) => {
-      if (f.metadata?.runtime && f.metadata.runtime > 0) {
-        totalRuntimeMinutes += f.metadata.runtime;
+      if (!diaryFilmKeys.has(f.letterboxdUri)) {
+        totalPossibleViewings++;
+        if (f.metadata?.runtime && f.metadata.runtime > 0) {
+          totalRuntimeMinutes += f.metadata.runtime;
+          viewingsWithRuntime++;
+        }
+      }
+    });
+  } else {
+    filteredEntries.forEach((e) => {
+      totalPossibleViewings++;
+      const film = filmsRecord[e.filmKey];
+      if (film?.metadata?.runtime && film.metadata.runtime > 0) {
+        totalRuntimeMinutes += film.metadata.runtime;
         viewingsWithRuntime++;
       }
     });
   }
 
+  const totalViewings = totalPossibleViewings;
   const runtimeCoveragePercent =
-    totalViewings > 0 ? Math.round((viewingsWithRuntime / totalViewings) * 100) : 0;
+    totalPossibleViewings > 0 ? Math.round((viewingsWithRuntime / totalPossibleViewings) * 100) : 0;
 
   const validRatings = activeFilms
     .map((f) => f.rating)
     .filter((r): r is number => r !== undefined && r > 0);
 
-  const averageRating = roundToOneDecimal(mean(validRatings));
+  const averageRating = roundToTwoDecimals(mean(validRatings));
   const ratingCoveragePercent =
     activeFilms.length > 0 ? Math.round((validRatings.length / activeFilms.length) * 100) : 0;
 

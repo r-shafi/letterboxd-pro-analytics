@@ -1,6 +1,7 @@
 import React from 'react';
 import { S4Ratings } from '../../services/analytics/types.ts';
 import { RatingsHistogram } from '../charts/RatingsHistogram.tsx';
+import { formatRating, formatRatingDelta } from '../../services/analytics/statistical.ts';
 import { Star, Repeat, Heart } from 'lucide-react';
 import { CONFIG } from '../../config/env.ts';
 
@@ -51,17 +52,17 @@ export const S4RatingsSection: React.FC<S4RatingsSectionProps> = ({
           <div className="space-y-3 text-xs">
             <div className="flex items-center justify-between p-2 rounded bg-[#14181c] border border-[#2c3440]">
               <span className="text-[#99aabb]">Arithmetic Mean</span>
-              <span className="font-mono text-lg font-bold text-[#00e054]">{ratings.mean}★</span>
+              <span className="font-mono text-lg font-bold text-[#00e054]">{formatRating(ratings.mean, 2)}</span>
             </div>
 
             <div className="flex items-center justify-between p-2 rounded bg-[#14181c] border border-[#2c3440]">
               <span className="text-[#99aabb]">Median</span>
-              <span className="font-mono text-lg font-bold text-white">{ratings.median}★</span>
+              <span className="font-mono text-lg font-bold text-white">{formatRating(ratings.median, 1)}</span>
             </div>
 
             <div className="flex items-center justify-between p-2 rounded bg-[#14181c] border border-[#2c3440]">
               <span className="text-[#99aabb]">Mode (Most Frequent)</span>
-              <span className="font-mono text-lg font-bold text-white">{ratings.mode}★</span>
+              <span className="font-mono text-lg font-bold text-white">{formatRating(ratings.mode, 1)}</span>
             </div>
 
             <div className="flex items-center justify-between p-2 rounded bg-[#14181c] border border-[#2c3440]">
@@ -76,7 +77,7 @@ export const S4RatingsSection: React.FC<S4RatingsSectionProps> = ({
               <div className="flex justify-between text-[#99aabb]">
                 <span>Most Generous Year:</span>
                 <span className="font-bold text-[#00e054]">
-                  {ratings.mostGenerousYear.year} ({ratings.mostGenerousYear.avgRating}★ avg)
+                  {ratings.mostGenerousYear.year} ({formatRating(ratings.mostGenerousYear.avgRating, 2)} avg)
                 </span>
               </div>
             )}
@@ -84,7 +85,7 @@ export const S4RatingsSection: React.FC<S4RatingsSectionProps> = ({
               <div className="flex justify-between text-[#99aabb]">
                 <span>Harshest Year:</span>
                 <span className="font-bold text-[#ff8000]">
-                  {ratings.harshestYear.year} ({ratings.harshestYear.avgRating}★ avg)
+                  {ratings.harshestYear.year} ({formatRating(ratings.harshestYear.avgRating, 2)} avg)
                 </span>
               </div>
             )}
@@ -129,7 +130,7 @@ export const S4RatingsSection: React.FC<S4RatingsSectionProps> = ({
           </div>
 
           <div className="text-xs text-[#ccdde6] pt-1">
-            Average delta on rewatch: <strong className="text-[#00e054] font-mono">{ratings.rewatchRatingDelta.averageDelta > 0 ? `+${ratings.rewatchRatingDelta.averageDelta}★` : `${ratings.rewatchRatingDelta.averageDelta}★`}</strong> across {ratings.rewatchRatingDelta.totalRewatched} rewatched titles.
+            Average delta on rewatch: <strong className="text-[#00e054] font-mono">{formatRatingDelta(ratings.rewatchRatingDelta.averageDelta, 2)}</strong> across {ratings.rewatchRatingDelta.totalRewatched} rewatched titles.
           </div>
         </div>
 
