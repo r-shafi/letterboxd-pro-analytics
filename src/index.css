@@ -1,0 +1,94 @@
+@import "tailwindcss";
+@import "@fontsource/inter/400.css";
+@import "@fontsource/inter/500.css";
+@import "@fontsource/inter/600.css";
+@import "@fontsource/inter/700.css";
+@import "@fontsource/space-grotesk/500.css";
+@import "@fontsource/space-grotesk/700.css";
+
+@theme {
+  --color-bg-base: #14181c;
+  --color-surface-card: #1b2026;
+  --color-surface-hover: #222831;
+  --color-surface-elevated: #2c3440;
+  --color-border-subtle: #2c3440;
+  --color-border-focus: #00e054;
+  --color-text-muted: #99aabb;
+  --color-text-base: #ccdde6;
+  --color-text-bright: #ffffff;
+  --color-accent-green: #00e054;
+  --color-accent-orange: #ff8000;
+  --color-accent-blue: #40bcf4;
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-display: 'Space Grotesk', system-ui, sans-serif;
+}
+
+:root {
+  color-scheme: dark;
+  --app-bg: #14181c;
+  --app-surface: #1b2026;
+  --app-card: #1b2026;
+  --app-border: #2c3440;
+  --app-green: #00e054;
+  --app-orange: #ff8000;
+  --app-blue: #40bcf4;
+  --app-muted: #99aabb;
+  --app-text: #ccdde6;
+  --app-bright: #ffffff;
+}
+
+body {
+  margin: 0;
+  background-color: var(--app-bg);
+  color: var(--app-text);
+  font-family: var(--font-sans);
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Custom scrollbars matching dark theme */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #14181c;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #2c3440;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #3d4756;
+}
+
+/* Poster Card styles */
+.film-poster-card {
+  position: relative;
+  border-radius: 4px;
+  overflow: hidden;
+  background-color: #1b2026;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.film-poster-card:hover, .film-poster-card:focus-visible {
+  transform: translateY(-2px);
+  border-color: #00e054;
+  box-shadow: 0 4px 12px rgba(0, 224, 84, 0.15);
+  outline: none;
+}
+
+/* Respect reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  *, ::before, ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
