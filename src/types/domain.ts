@@ -34,6 +34,7 @@ export interface TmdbPersonCompact {
   character?: string;
   job?: string;
   order?: number;
+  gender?: number; // 1 = female, 2 = male, 0 or 3 = unspecified
 }
 
 export interface TmdbMovieCompact {

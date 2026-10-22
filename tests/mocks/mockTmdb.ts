@@ -58,8 +58,8 @@ export function createMockMovie(id: number, title: string, year = 2020): TmdbMov
     keywords: ['cinema', 'journey', 'epic', 'award winner'],
     directors: [dir],
     cast: [
-      { id: 101, name: 'Lead Actor A', character: 'Hero', order: 0 },
-      { id: 102, name: 'Supporting Actor B', character: 'Friend', order: 1 }
+      { id: 101, name: 'Lead Actor A', character: 'Hero', order: 0, gender: 2 },
+      { id: 102, name: 'Supporting Actress B', character: 'Friend', order: 1, gender: 1 }
     ],
     writers: [{ id: 201, name: 'Writer A', job: 'Screenplay' }],
     cinematographers: [{ id: 301, name: 'DOP A', job: 'Cinematographer' }],

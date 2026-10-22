@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { RankedPerson } from '../../services/analytics/types.ts';
 import { CONFIG } from '../../config/env.ts';
 import { Star } from 'lucide-react';
@@ -6,6 +6,8 @@ import { Star } from 'lucide-react';
 interface PeoplePortraitsProps {
   directors: RankedPerson[];
   actors: RankedPerson[];
+  actresses: RankedPerson[];
+  allCast: RankedPerson[];
   writers: RankedPerson[];
   cinematographers: RankedPerson[];
   composers: RankedPerson[];
@@ -16,19 +18,43 @@ interface PeoplePortraitsProps {
 export const PeoplePortraits: React.FC<PeoplePortraitsProps> = ({
   directors,
   actors,
+  actresses,
+  allCast,
   writers,
   cinematographers,
   composers,
   overallMean,
   onSelectPerson
 }) => {
-  const [activeRole, setActiveRole] = useState<'directors' | 'actors' | 'writers' | 'cinematographers' | 'composers'>('directors');
+  const [activeRole, setActiveRole] = useState<'directors' | 'cast' | 'writers' | 'cinematographers' | 'composers'>('directors');
+  const [castSubFilter, setCastSubFilter] = useState<'all' | 'actors' | 'actresses'>('all');
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+
+  const handleRoleChange = (role: 'directors' | 'cast' | 'writers' | 'cinematographers' | 'composers') => {
+    setActiveRole(role);
+    if (typeof scrollContainerRef.current?.scrollTo === 'function') {
+      scrollContainerRef.current.scrollTo({ left: 0, top: 0, behavior: 'smooth' });
+    } else if (scrollContainerRef.current) {
+      scrollContainerRef.current.scrollLeft = 0;
+      scrollContainerRef.current.scrollTop = 0;
+    }
+  };
+
+  const handleCastFilterChange = (filter: 'all' | 'actors' | 'actresses') => {
+    setCastSubFilter(filter);
+    if (typeof scrollContainerRef.current?.scrollTo === 'function') {
+      scrollContainerRef.current.scrollTo({ left: 0, top: 0, behavior: 'smooth' });
+    } else if (scrollContainerRef.current) {
+      scrollContainerRef.current.scrollLeft = 0;
+      scrollContainerRef.current.scrollTop = 0;
+    }
+  };
 
   const currentList =
     activeRole === 'directors'
       ? directors
-      : activeRole === 'actors'
-      ? actors
+      : activeRole === 'cast'
+      ? (castSubFilter === 'actors' ? actors : castSubFilter === 'actresses' ? actresses : allCast)
       : activeRole === 'writers'
       ? writers
       : activeRole === 'cinematographers'
@@ -47,24 +73,54 @@ export const PeoplePortraits: React.FC<PeoplePortraitsProps> = ({
   return (
     <div className="w-full space-y-4">
       {/* Role Tabs */}
-      <div className="flex overflow-x-auto gap-2 border-b border-[#2c3440] pb-2 text-xs">
-        {(['directors', 'actors', 'writers', 'cinematographers', 'composers'] as const).map((role) => (
-          <button
-            key={role}
-            onClick={() => setActiveRole(role)}
-            className={`rounded-full px-3 py-1 font-medium capitalize transition-colors whitespace-nowrap ${
-              activeRole === role
-                ? 'bg-[#00e054] text-[#14181c] font-bold shadow'
-                : 'text-[#99aabb] hover:text-white bg-[#14181c] border border-[#2c3440]'
-            }`}
-          >
-            {role}
-          </button>
-        ))}
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#2c3440] pb-2 text-xs">
+        <div className="flex overflow-x-auto gap-2">
+          {(['directors', 'cast', 'writers', 'cinematographers', 'composers'] as const).map((role) => (
+            <button
+              key={role}
+              onClick={() => handleRoleChange(role)}
+              className={`rounded-full px-3 py-1 font-medium capitalize transition-colors whitespace-nowrap ${
+                activeRole === role
+                  ? 'bg-[#00e054] text-[#14181c] font-bold shadow'
+                  : 'text-[#99aabb] hover:text-white bg-[#14181c] border border-[#2c3440]'
+              }`}
+            >
+              {role === 'cast' ? 'Cast' : role}
+            </button>
+          ))}
+        </div>
+
+        {/* Cast Sub-Filter (All Cast / Actors / Actresses) */}
+        {activeRole === 'cast' && (
+          <div className="flex items-center gap-1 rounded-lg bg-[#14181c] p-1 border border-[#2c3440]">
+            {(
+              [
+                { id: 'all', label: 'All Cast' },
+                { id: 'actors', label: 'Actors' },
+                { id: 'actresses', label: 'Actresses' }
+              ] as const
+            ).map(({ id, label }) => (
+              <button
+                key={id}
+                onClick={() => handleCastFilterChange(id)}
+                className={`rounded px-2.5 py-0.5 text-[11px] font-medium transition-colors ${
+                  castSubFilter === id
+                    ? 'bg-[#2c3440] text-white font-bold'
+                    : 'text-[#99aabb] hover:text-white'
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Horizontally scrollable circular portrait row */}
-      <div className="flex gap-4 overflow-x-auto pb-4 pt-1 scrollbar-thin scrollbar-thumb-[#2c3440]">
+      <div
+        ref={scrollContainerRef}
+        className="flex gap-4 overflow-x-auto pb-4 pt-1 scrollbar-thin scrollbar-thumb-[#2c3440]"
+      >
         {currentList.slice(0, 20).map((item, idx) => {
           const isAbove = item.avgRating >= overallMean;
 

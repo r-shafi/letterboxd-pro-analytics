@@ -38,6 +38,8 @@ export const S7PeopleSection: React.FC<S7PeopleSectionProps> = ({
         <PeoplePortraits
           directors={people.directors}
           actors={people.actors}
+          actresses={people.actresses}
+          allCast={people.allCast}
           writers={people.writers}
           cinematographers={people.cinematographers}
           composers={people.composers}

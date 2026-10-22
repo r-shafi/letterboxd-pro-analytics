@@ -280,11 +280,17 @@ export function calculateAnalyticsSnapshot(
     count: monthSeasonCounts[i + 1]
   }));
 
-  const weekdayDistribution = Array.from({ length: 7 }, (_, i) => ({
-    weekday: i + 1,
-    name: WEEKDAY_NAMES[i + 1],
-    count: weekdayCounts[i + 1]
-  }));
+  const totalDated = datedEntries.length;
+  const weekdayDistribution = Array.from({ length: 7 }, (_, i) => {
+    const count = weekdayCounts[i + 1] || 0;
+    const sharePercent = totalDated > 0 ? Math.round((count / totalDated) * 100) : 0;
+    return {
+      weekday: i + 1,
+      name: WEEKDAY_NAMES[i + 1],
+      count,
+      sharePercent
+    };
+  });
 
   // Streaks calculation over all dated history
   const allSortedDates = Array.from(dayCounts.keys()).sort();
@@ -472,7 +478,8 @@ export function calculateAnalyticsSnapshot(
       dayOfYear,
       daysInYear
     },
-    backlogLoggingLag
+    backlogLoggingLag,
+    dateUnknownCount
   };
 
   // -------------------------------------------------------------
@@ -517,20 +524,25 @@ export function calculateAnalyticsSnapshot(
     .sort((a, b) => a.decade - b.decade);
 
   const byReleaseYear = Array.from(releaseYearMap.entries())
-    .map(([year, ratings]) => ({
-      year,
-      avgRating: roundToOneDecimal(mean(ratings)),
-      count: ratings.length
-    }))
+    .map(([year, ratings]) => {
+      const rawAvg = roundToTwoDecimals(mean(ratings));
+      const shrunk = bayesianShrinkage(rawAvg, ratings.length, averageRating, 5);
+      return {
+        year,
+        avgRating: rawAvg,
+        shrunkRating: shrunk,
+        count: ratings.length
+      };
+    })
     .sort((a, b) => a.year - b.year);
 
-  // Harshest & most generous release years (min n=3)
-  const qualifiedYears = byReleaseYear.filter((y) => y.count >= 3);
+  // Harshest & most generous release years (min N = 5, smoothed with Bayesian shrinkage k=5 against baseline)
+  const qualifiedYears = byReleaseYear.filter((y) => y.count >= 5);
   const harshestYear = qualifiedYears.length > 0
-    ? [...qualifiedYears].sort((a, b) => a.avgRating - b.avgRating)[0]
+    ? [...qualifiedYears].sort((a, b) => a.shrunkRating - b.shrunkRating)[0]
     : null;
   const mostGenerousYear = qualifiedYears.length > 0
-    ? [...qualifiedYears].sort((a, b) => b.avgRating - a.avgRating)[0]
+    ? [...qualifiedYears].sort((a, b) => b.shrunkRating - a.shrunkRating)[0]
     : null;
 
   // Liked vs rated inconsistencies
@@ -576,9 +588,9 @@ export function calculateAnalyticsSnapshot(
     }
   });
 
-  const averageRewatchDelta = rewatchWithRatingsCount > 0 ? roundToOneDecimal(deltaSum / rewatchWithRatingsCount) : 0;
+  const averageRewatchDelta = rewatchWithRatingsCount > 0 ? roundToTwoDecimals(deltaSum / rewatchWithRatingsCount) : 0;
 
-  const topRatedFilms = activeFilms.filter((f) => f.rating === 5.0).slice(0, 24);
+  const topRatedFilms = activeFilms.filter((f) => f.rating === 5.0);
   const lowestRatedFilms = activeFilms
     .filter((f) => f.rating !== undefined && f.rating <= 1.5)
     .sort((a, b) => (a.rating || 0) - (b.rating || 0))
@@ -837,49 +849,49 @@ export function calculateAnalyticsSnapshot(
       if (f.rating) record.ratings.push(f.rating);
     });
 
-    meta.cast.forEach((a) => {
+    meta.cast?.forEach((a) => {
       if (!actorMap.has(a.id)) actorMap.set(a.id, { person: a, ratings: [], keys: [] });
       const record = actorMap.get(a.id)!;
       record.keys.push(f.letterboxdUri);
       if (f.rating) record.ratings.push(f.rating);
     });
 
-    meta.writers.forEach((w) => {
+    meta.writers?.forEach((w) => {
       if (!writerMap.has(w.id)) writerMap.set(w.id, { person: w, ratings: [], keys: [] });
       const record = writerMap.get(w.id)!;
       record.keys.push(f.letterboxdUri);
       if (f.rating) record.ratings.push(f.rating);
     });
 
-    meta.cinematographers.forEach((c) => {
+    meta.cinematographers?.forEach((c) => {
       if (!dopMap.has(c.id)) dopMap.set(c.id, { person: c, ratings: [], keys: [] });
       const record = dopMap.get(c.id)!;
       record.keys.push(f.letterboxdUri);
       if (f.rating) record.ratings.push(f.rating);
     });
 
-    meta.composers.forEach((m) => {
+    meta.composers?.forEach((m) => {
       if (!composerMap.has(m.id)) composerMap.set(m.id, { person: m, ratings: [], keys: [] });
       const record = composerMap.get(m.id)!;
       record.keys.push(f.letterboxdUri);
       if (f.rating) record.ratings.push(f.rating);
     });
 
-    meta.editors.forEach((ed) => {
+    meta.editors?.forEach((ed) => {
       if (!editorMap.has(ed.id)) editorMap.set(ed.id, { person: ed, ratings: [], keys: [] });
       const record = editorMap.get(ed.id)!;
       record.keys.push(f.letterboxdUri);
       if (f.rating) record.ratings.push(f.rating);
     });
 
-    meta.producers.forEach((p) => {
+    meta.producers?.forEach((p) => {
       if (!producerMap.has(p.id)) producerMap.set(p.id, { person: p, ratings: [], keys: [] });
       const record = producerMap.get(p.id)!;
       record.keys.push(f.letterboxdUri);
       if (f.rating) record.ratings.push(f.rating);
     });
 
-    meta.productionCompanies.forEach((st) => {
+    meta.productionCompanies?.forEach((st) => {
       if (!studioMap.has(st.id)) studioMap.set(st.id, { name: st.name, ratings: [], keys: [] });
       const record = studioMap.get(st.id)!;
       record.keys.push(f.letterboxdUri);
@@ -904,7 +916,9 @@ export function calculateAnalyticsSnapshot(
   };
 
   const directors = buildRankedList(directorMap);
-  const actors = buildRankedList(actorMap);
+  const allCast = buildRankedList(actorMap);
+  const actors = allCast.filter((p) => p.person.gender === 2);
+  const actresses = allCast.filter((p) => p.person.gender === 1);
   const writers = buildRankedList(writerMap);
   const cinematographers = buildRankedList(dopMap);
   const composers = buildRankedList(composerMap);
@@ -956,6 +970,8 @@ export function calculateAnalyticsSnapshot(
   const s7People: S7People = {
     directors,
     actors,
+    actresses,
+    allCast,
     writers,
     cinematographers,
     composers,
@@ -1113,7 +1129,7 @@ export function calculateAnalyticsSnapshot(
   // Tags
   const tagMap = new Map<string, { count: number; ratings: number[] }>();
   filteredEntries.forEach((e) => {
-    e.tags.forEach((t) => {
+    e.tags?.forEach((t) => {
       if (!tagMap.has(t)) tagMap.set(t, { count: 0, ratings: [] });
       const tm = tagMap.get(t)!;
       tm.count++;

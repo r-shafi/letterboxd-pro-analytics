@@ -73,19 +73,22 @@ export const S4RatingsSection: React.FC<S4RatingsSectionProps> = ({
 
           {/* Generous vs Harshest Years */}
           <div className="border-t border-[#2c3440] pt-3 text-[11px] space-y-1.5">
+            <div className="text-[10px] text-[#99aabb]/70 uppercase tracking-wider font-semibold">
+              By Release Year (min 5 films, smoothed with Bayesian shrinkage)
+            </div>
             {ratings.mostGenerousYear && (
               <div className="flex justify-between text-[#99aabb]">
-                <span>Most Generous Year:</span>
+                <span>Most Generous Release Year:</span>
                 <span className="font-bold text-[#00e054]">
-                  {ratings.mostGenerousYear.year} ({formatRating(ratings.mostGenerousYear.avgRating, 2)} avg)
+                  {ratings.mostGenerousYear.year} ({formatRating(ratings.mostGenerousYear.avgRating, 2)} avg, {ratings.mostGenerousYear.count} films)
                 </span>
               </div>
             )}
             {ratings.harshestYear && (
               <div className="flex justify-between text-[#99aabb]">
-                <span>Harshest Year:</span>
+                <span>Harshest Release Year:</span>
                 <span className="font-bold text-[#ff8000]">
-                  {ratings.harshestYear.year} ({formatRating(ratings.harshestYear.avgRating, 2)} avg)
+                  {ratings.harshestYear.year} ({formatRating(ratings.harshestYear.avgRating, 2)} avg, {ratings.harshestYear.count} films)
                 </span>
               </div>
             )}
@@ -129,9 +132,15 @@ export const S4RatingsSection: React.FC<S4RatingsSectionProps> = ({
             </div>
           </div>
 
-          <div className="text-xs text-[#ccdde6] pt-1">
-            Average delta on rewatch: <strong className="text-[#00e054] font-mono">{formatRatingDelta(ratings.rewatchRatingDelta.averageDelta, 2)}</strong> across {ratings.rewatchRatingDelta.totalRewatched} rewatched titles.
-          </div>
+          {ratings.rewatchRatingDelta.totalRewatched === 0 ? (
+            <div className="text-xs text-[#99aabb] pt-1 italic">
+              No films with multiple rated diary entries found in this period to compute rating change on rewatch.
+            </div>
+          ) : (
+            <div className="text-xs text-[#ccdde6] pt-1">
+              Average delta on rewatch: <strong className="text-[#00e054] font-mono">{formatRatingDelta(ratings.rewatchRatingDelta.averageDelta, 2)}</strong> across {ratings.rewatchRatingDelta.totalRewatched} rewatched titles.
+            </div>
+          )}
         </div>
 
         {/* Discordance: Liked vs Rated */}
@@ -157,10 +166,10 @@ export const S4RatingsSection: React.FC<S4RatingsSectionProps> = ({
 
             <div className="rounded-lg border border-[#2c3440] bg-[#14181c] p-3">
               <div className="font-semibold text-white">
-                5.0★ Masterpieces Without Heart: <span className="font-mono text-[#40bcf4] font-bold">{ratings.likedVsRated.unlikedFiveStars.length}</span> films
+                5★ films you didn't heart: <span className="font-mono text-[#40bcf4] font-bold">{ratings.likedVsRated.unlikedFiveStars.length}</span> films
               </div>
               <p className="text-[11px] text-[#99aabb] mt-0.5">
-                Films objectively recognized as perfect achievements without emotional affection.
+                Masterpieces you rated a perfect 5.0★ without marking them with a heart.
               </p>
             </div>
           </div>
@@ -175,6 +184,11 @@ export const S4RatingsSection: React.FC<S4RatingsSectionProps> = ({
               <Star className="h-4 w-4 text-[#00e054] fill-[#00e054]" />
               <span>The 5★ Club ({ratings.topRatedFilms.length} Films)</span>
             </div>
+            {ratings.topRatedFilms.length > 24 && (
+              <span className="text-[11px] text-[#99aabb]">
+                Showing first 24 of {ratings.topRatedFilms.length}
+              </span>
+            )}
           </div>
 
           <div className="grid grid-cols-4 gap-2 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-12">

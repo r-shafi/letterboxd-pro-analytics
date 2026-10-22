@@ -84,6 +84,7 @@ export const S3VolumeSection: React.FC<S3VolumeSectionProps> = ({
             <h3 className="text-base font-bold text-white">Trailing 365-Day Activity</h3>
             <p className="text-xs text-[#99aabb]">
               Every day watched over the last 365 days ending today. Tap any cell to view films.
+              {volume.dateUnknownCount > 0 && ` (${volume.dateUnknownCount} films without a watch date are not shown).`}
             </p>
           </div>
           {volume.busiestDay && (
@@ -105,7 +106,14 @@ export const S3VolumeSection: React.FC<S3VolumeSectionProps> = ({
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         {/* Films per year */}
         <div className="rounded-xl border border-[#2c3440] bg-[#1b2026] p-6 shadow-xl space-y-4">
-          <h3 className="text-base font-bold text-white">Annual Film Volume</h3>
+          <div className="flex items-center justify-between">
+            <h3 className="text-base font-bold text-white">Annual Film Volume</h3>
+            {volume.dateUnknownCount > 0 && (
+              <span className="text-[10px] text-[#99aabb]/80">
+                {volume.dateUnknownCount} films without a watch date are not shown
+              </span>
+            )}
+          </div>
           <div className="space-y-3">
             {volume.yearlyVolume.map((y) => (
               <div key={y.year} className="space-y-1">
@@ -145,20 +153,54 @@ export const S3VolumeSection: React.FC<S3VolumeSectionProps> = ({
 
         {/* Seasonality & Weekday breakdown */}
         <div className="rounded-xl border border-[#2c3440] bg-[#1b2026] p-6 shadow-xl space-y-4">
-          <h3 className="text-base font-bold text-white">Day of the Week Habits</h3>
-          <div className="grid grid-cols-7 gap-1.5 items-end h-36 pt-4">
+          <div className="flex items-center justify-between">
+            <h3 className="text-base font-bold text-white">Day of the Week Habits</h3>
+            {volume.dateUnknownCount > 0 && (
+              <span className="text-[10px] text-[#99aabb]/80">
+                {volume.dateUnknownCount} films without a watch date are not shown
+              </span>
+            )}
+          </div>
+          <div className="grid grid-cols-7 gap-1.5 sm:gap-2 items-end h-40 pt-4" data-testid="weekday-habits-chart">
             {volume.weekdayDistribution.map((wd) => {
               const maxWd = Math.max(1, ...volume.weekdayDistribution.map((w) => w.count));
-              const heightPct = Math.max(8, Math.round((wd.count / maxWd) * 100));
+              const heightPct = maxWd > 0 ? Math.round((wd.count / maxWd) * 100) : 0;
+              const isPeak = wd.count === maxWd && wd.count > 0;
+              const intensity = maxWd > 0 ? 0.35 + 0.65 * (wd.count / maxWd) : 0.5;
 
               return (
-                <div key={wd.weekday} className="flex flex-col items-center h-full justify-end">
-                  <span className="text-[10px] font-mono text-[#99aabb] mb-1">{wd.count}</span>
+                <div key={wd.weekday} className="flex flex-col items-center h-full justify-end group">
+                  <div className="text-center mb-1 transition-transform group-hover:scale-110">
+                    <span className={`block text-[11px] font-mono font-bold ${isPeak ? 'text-[#00e054]' : 'text-white'}`}>
+                      {wd.count}
+                    </span>
+                    <span className="block text-[9px] font-mono text-[#99aabb]">
+                      {wd.sharePercent}%
+                    </span>
+                  </div>
                   <div
-                    className="w-full rounded-t bg-[#40bcf4] transition-all"
-                    style={{ height: `${heightPct}%` }}
+                    data-testid={`weekday-bar-${wd.name.toLowerCase()}`}
+                    className={`w-full rounded-t transition-all duration-300 ${
+                      isPeak
+                        ? 'bg-[#00e054] shadow-[0_0_12px_rgba(0,224,84,0.3)]'
+                        : 'bg-[#40bcf4]'
+                    }`}
+                    style={{
+                      height: `${Math.max(4, heightPct)}%`,
+                      opacity: isPeak ? 1 : intensity
+                    }}
+                    title={`${wd.name}: ${wd.count} viewings (${wd.sharePercent}% share)${isPeak ? ' • Peak Activity Day' : ''}`}
                   />
-                  <span className="mt-2 text-[10px] font-semibold text-[#ccdde6]">{wd.name}</span>
+                  <div className="mt-2 text-center">
+                    <span className={`text-[11px] font-semibold ${isPeak ? 'text-[#00e054]' : 'text-[#ccdde6]'}`}>
+                      {wd.name}
+                    </span>
+                    {isPeak && (
+                      <span className="block text-[8px] uppercase tracking-wider font-bold text-[#00e054]">
+                        Peak
+                      </span>
+                    )}
+                  </div>
                 </div>
               );
             })}

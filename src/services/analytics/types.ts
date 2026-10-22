@@ -98,7 +98,7 @@ export interface S3Volume {
   yearlyVolume: YearVolume[];
   yearMonthMatrix: Array<{ year: number; months: number[] }>; // 12 numbers per year
   monthSeasonality: Array<{ month: number; count: number; name: string }>;
-  weekdayDistribution: Array<{ weekday: number; name: string; count: number }>;
+  weekdayDistribution: Array<{ weekday: number; name: string; count: number; sharePercent: number }>;
   trailing365Calendar: HeatmapDayCell[];
   yearlyCalendars: Record<number, HeatmapDayCell[]>;
   streaks: StreakStats;
@@ -113,6 +113,7 @@ export interface S3Volume {
     daysInYear: number;
   };
   backlogLoggingLag: Array<{ lagBucket: string; count: number }>;
+  dateUnknownCount: number;
 }
 
 // S4. Ratings
@@ -120,6 +121,13 @@ export interface RatingBucket {
   rating: number; // 0.5 to 5.0
   count: number;
   percent: number;
+}
+
+export interface YearRatingStat {
+  year: number;
+  avgRating: number;
+  shrunkRating: number;
+  count: number;
 }
 
 export interface S4Ratings {
@@ -131,8 +139,8 @@ export interface S4Ratings {
   rollingRatingMonthly: Array<{ date: string; avgRating: number; count: number }>;
   byReleaseDecade: Array<{ decade: number; avgRating: number; count: number }>;
   byReleaseYear: Array<{ year: number; avgRating: number; count: number }>;
-  harshestYear: { year: number; avgRating: number; count: number } | null;
-  mostGenerousYear: { year: number; avgRating: number; count: number } | null;
+  harshestYear: YearRatingStat | null;
+  mostGenerousYear: YearRatingStat | null;
   likedVsRated: {
     likedShareByRating: Array<{ rating: number; total: number; likedCount: number; percentLiked: number }>;
     unlikedFiveStars: Film[];
@@ -242,6 +250,8 @@ export interface RankedPerson {
 export interface S7People {
   directors: RankedPerson[];
   actors: RankedPerson[];
+  actresses: RankedPerson[];
+  allCast: RankedPerson[];
   writers: RankedPerson[];
   cinematographers: RankedPerson[];
   composers: RankedPerson[];
