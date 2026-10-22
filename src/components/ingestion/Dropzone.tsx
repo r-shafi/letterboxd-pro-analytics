@@ -1,10 +1,11 @@
 import React, { useRef, useState } from 'react';
-import { UploadCloud, FileArchive, FolderOpen, Shield, Key } from 'lucide-react';
+import { UploadCloud, FileArchive, FolderOpen, Shield, Key, Sparkles } from 'lucide-react';
 
 interface DropzoneProps {
   onFileSelect: (file: File) => void;
   onCsvFilesSelect: (files: Record<string, string>) => void;
   onOpenSettings: () => void;
+  onLoadDemo?: () => void;
   disabled?: boolean;
 }
 
@@ -12,6 +13,7 @@ export const Dropzone: React.FC<DropzoneProps> = ({
   onFileSelect,
   onCsvFilesSelect,
   onOpenSettings,
+  onLoadDemo,
   disabled = false
 }) => {
   const [isDragOver, setIsDragOver] = useState(false);
@@ -126,6 +128,16 @@ export const Dropzone: React.FC<DropzoneProps> = ({
             <FolderOpen className="h-4 w-4" />
             Select CSVs
           </button>
+
+          {onLoadDemo && (
+            <button
+              onClick={onLoadDemo}
+              className="inline-flex items-center gap-2 rounded-lg border border-[#ff8000]/40 bg-[#ff8000]/10 px-4 py-2.5 text-sm font-semibold text-[#ff8000] hover:bg-[#ff8000]/20 hover:border-[#ff8000] transition-all"
+            >
+              <Sparkles className="h-4 w-4" />
+              Try Demo Data (Instant)
+            </button>
+          )}
         </div>
 
         {/* Help & Privacy banner */}

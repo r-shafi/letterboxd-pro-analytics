@@ -53,6 +53,7 @@ export interface IngestionStore {
   cancel: () => void;
   overrideMatch: (uri: string, candidate: TmdbMatchCandidate) => Promise<void>;
   hydrateFromStorage: () => Promise<boolean>;
+  loadDemoData: () => Promise<void>;
   clearAllData: () => Promise<void>;
 }
 
@@ -298,6 +299,47 @@ export const useIngestionStore = create<IngestionStore>((set, get) => ({
     } catch {
       return false;
     }
+  },
+
+  loadDemoData: async () => {
+    set({
+      status: 'parsing',
+      error: undefined,
+      progress: {
+        phaseText: 'Loading demo archive...',
+        total: 100,
+        current: 50,
+        percent: 50,
+        speed: 0,
+        etaSeconds: 0
+      }
+    });
+
+    const { generateDemoDataset } = await import('../services/synthetic/demoLoader.ts');
+    const demo = generateDemoDataset(120);
+
+    await storage.setItem('data:films', demo.films);
+    await storage.setItem('data:entries', demo.entries);
+    await storage.setItem('data:lists', demo.lists);
+    if (demo.profile) await storage.setItem('data:profile', demo.profile);
+    if (demo.report) await storage.setItem('data:report', demo.report);
+
+    set({
+      films: demo.films,
+      entries: demo.entries,
+      lists: demo.lists,
+      profile: demo.profile,
+      report: demo.report,
+      status: 'completed',
+      progress: {
+        phaseText: 'Demo dataset ready',
+        total: Object.keys(demo.films).length,
+        current: Object.keys(demo.films).length,
+        percent: 100,
+        speed: 0,
+        etaSeconds: 0
+      }
+    });
   },
 
   clearAllData: async () => {
