@@ -9,6 +9,7 @@ import { extractLetterboxdZip } from '../src/services/parser/zipParser.ts';
 import { processLetterboxdExport } from '../src/services/parser/csvParser.ts';
 import { calculateAnalyticsSnapshot } from '../src/services/analytics/engine.ts';
 import { buildDemoEnrichedMovie } from '../src/services/synthetic/demoLoader.ts';
+import { generateSyntheticZip } from '../src/services/synthetic/generator.ts';
 import { Film } from '../src/types/domain.ts';
 
 describe('Phase 6: Hardening & Performance Benchmarking', () => {
@@ -17,9 +18,9 @@ describe('Phase 6: Hardening & Performance Benchmarking', () => {
 
   describe('5,000-Film Synthetic Performance Benchmark', () => {
     it('parses and computes full analytics snapshot on 5,000 films within SLA (< 1500ms)', () => {
-      expect(fs.existsSync(synth5000Path)).toBe(true);
-      const zipBuffer = fs.readFileSync(synth5000Path);
-      const uint8 = new Uint8Array(zipBuffer.buffer, zipBuffer.byteOffset, zipBuffer.byteLength);
+      const uint8 = fs.existsSync(synth5000Path)
+        ? new Uint8Array(fs.readFileSync(synth5000Path))
+        : generateSyntheticZip({ filmCount: 5000 });
 
       // 1. Measure Decompression Time
       const t0 = performance.now();
