@@ -5,7 +5,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/shafiemoji/letterboxd-pro-analytics/actions"><img src="https://img.shields.io/badge/CI-Passing-00e054?style=flat-square&logo=github-actions" alt="CI Status" /></a>
+  <a href="https://github.com/r-shafi/letterboxd-pro-analytics/actions"><img src="https://img.shields.io/badge/CI-Passing-00e054?style=flat-square&logo=github-actions" alt="CI Status" /></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-40bcf4?style=flat-square" alt="MIT License" /></a>
   <a href="https://www.typescriptlang.org/"><img src="https://img.shields.io/badge/TypeScript-Strict%205.9-3178c6?style=flat-square&logo=typescript" alt="TypeScript Strict" /></a>
   <a href="docs/PRIVACY.md"><img src="https://img.shields.io/badge/Privacy-100%25%20In--Browser-00e054?style=flat-square&logo=shield" alt="Privacy Shield" /></a>
@@ -95,7 +95,7 @@ For complete mathematical formulas and algorithms, see the [Analytics Catalog](d
 ### Setup & Run
 ```bash
 # Clone the repository
-git clone https://github.com/shafiemoji/letterboxd-pro-analytics.git
+git clone https://github.com/r-shafi/letterboxd-pro-analytics.git
 cd letterboxd-pro-analytics
 
 # Install exact pinned dependencies
@@ -138,7 +138,7 @@ cp .env.example .env
 | Variable | Description | Default |
 | :--- | :--- | :--- |
 | `VITE_SITE_NAME` | Display site name | `Letterboxd Pro Analytics` |
-| `VITE_REPO_URL` | GitHub repository URL | `https://github.com/shafiemoji/letterboxd-pro-analytics` |
+| `VITE_REPO_URL` | GitHub repository URL | `https://github.com/r-shafi/letterboxd-pro-analytics` |
 | `VITE_AUTHOR_NAME` | Project author name | `R. Shafi` |
 | `VITE_TMDB_FALLBACK_KEY` | Default TMDb v3 API key | Embedded fallback |
 | `VITE_TMDB_API_BASE` | Optional reverse proxy base URL | `https://api.themoviedb.org/3` |

@@ -29,7 +29,7 @@ export const Header: React.FC<HeaderProps> = ({
     const fetchStars = async () => {
       try {
         const repoPath = CONFIG.repoUrl.replace('https://github.com/', '');
-        if (!repoPath || repoPath === 'shafiemoji/letterboxd-pro-analytics') return;
+        if (!repoPath || repoPath === 'r-shafi/letterboxd-pro-analytics') return;
         const res = await fetch(`https://api.github.com/repos/${repoPath}`);
         if (res.ok) {
           const data = await res.json();
