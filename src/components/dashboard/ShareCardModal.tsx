@@ -3,18 +3,22 @@ import { AnalyticsSnapshot } from '../../services/analytics/types.ts';
 import { toPng } from 'html-to-image';
 import { CONFIG } from '../../config/env.ts';
 import { BrandLogo } from '../common/BrandLogo.tsx';
-import { X, Download, Share2, Sparkles } from 'lucide-react';
+import { X, Download, Share2, Sparkles, Link as LinkIcon, Check } from 'lucide-react';
 import { formatWatchDuration } from '../../utils/date.ts';
 import { tracker } from '../../services/telemetry/tracker.ts';
+import { Profile } from '../../types/domain.ts';
+import { encodeSharedSnapshot } from '../../services/share/urlShare.ts';
 
 interface ShareCardModalProps {
   snapshot: AnalyticsSnapshot;
+  profile?: Profile;
   onClose: () => void;
 }
 
-export const ShareCardModal: React.FC<ShareCardModalProps> = ({ snapshot, onClose }) => {
+export const ShareCardModal: React.FC<ShareCardModalProps> = ({ snapshot, profile, onClose }) => {
   const [aspectRatio, setAspectRatio] = useState<'square' | 'story'>('square');
   const [isExporting, setIsExporting] = useState(false);
+  const [copiedLink, setCopiedLink] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
 
   const duration = formatWatchDuration(snapshot.s1Snapshot.totalRuntimeMinutes);
@@ -70,6 +74,19 @@ export const ShareCardModal: React.FC<ShareCardModalProps> = ({ snapshot, onClos
       handleDownload();
     } finally {
       setIsExporting(false);
+    }
+  };
+
+  const handleCopyLink = async () => {
+    try {
+      const fragment = encodeSharedSnapshot(snapshot, profile, 'compact');
+      const url = `${window.location.origin}${window.location.pathname}${fragment}`;
+      await navigator.clipboard.writeText(url);
+      setCopiedLink(true);
+      tracker.track({ name: 'share_card_generated', properties: { format: 'url_compact' } });
+      setTimeout(() => setCopiedLink(false), 2500);
+    } catch {
+      // Fallback
     }
   };
 
@@ -199,6 +216,15 @@ export const ShareCardModal: React.FC<ShareCardModalProps> = ({ snapshot, onClos
         <div className="flex items-center justify-between border-t border-[#2c3440] px-6 py-4">
           <div className="text-xs text-[#99aabb]">Saved 100% locally to your device</div>
           <div className="flex gap-2">
+            <button
+              onClick={handleCopyLink}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-[#2c3440] bg-[#14181c] px-3 py-2 text-xs font-medium text-[#40bcf4] hover:border-[#40bcf4]"
+              title="Copy compressed stats link"
+            >
+              {copiedLink ? <Check className="h-4 w-4 text-[#00e054]" /> : <LinkIcon className="h-4 w-4" />}
+              <span>{copiedLink ? 'Link Copied!' : 'Copy Link'}</span>
+            </button>
+
             <button
               onClick={handleDownload}
               disabled={isExporting}

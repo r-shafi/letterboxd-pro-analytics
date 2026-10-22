@@ -31,12 +31,19 @@ import { S14ShareSection } from './components/sections/S14ShareSection.tsx';
 
 import { useIngestionStore } from './store/ingestionStore.ts';
 import { calculateAnalyticsSnapshot } from './services/analytics/engine.ts';
-import { TimeFilter, HeatmapDayCell, RankedPerson } from './services/analytics/types.ts';
+import { TimeFilter, HeatmapDayCell, RankedPerson, AnalyticsSnapshot } from './services/analytics/types.ts';
+import { Film, Profile } from './types/domain.ts';
+import { decompressSharedSnapshotAsync, sharedPayloadToSnapshot } from './services/share/urlShare.ts';
 import './index.css';
 
 export const App: React.FC = () => {
   const store = useIngestionStore();
   const [filter, setFilter] = useState<TimeFilter>({ range: 'all' });
+  const [sharedViewData, setSharedViewData] = useState<{
+    snapshot: AnalyticsSnapshot;
+    profile: Profile;
+    films: Record<string, Film>;
+  } | null>(null);
 
   // Modal states
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -79,6 +86,27 @@ export const App: React.FC = () => {
     return () => window.removeEventListener('beforeinstallprompt', handleBeforeInstall);
   }, []);
 
+  // Check URL fragment for #v1= on mount and hashchange
+  useEffect(() => {
+    const checkHash = async () => {
+      const hash = window.location.hash;
+      if (hash.startsWith('#v1=') || hash.startsWith('v1=')) {
+        const payload = await decompressSharedSnapshotAsync(hash);
+        if (payload) {
+          const adapted = sharedPayloadToSnapshot(payload);
+          setSharedViewData(adapted);
+          tracker.track({ name: 'pageview', properties: { path: window.location.pathname } });
+        }
+      } else {
+        setSharedViewData(null);
+      }
+    };
+
+    checkHash();
+    window.addEventListener('hashchange', checkHash);
+    return () => window.removeEventListener('hashchange', checkHash);
+  }, []);
+
   const handleInstallPwa = async () => {
     if (!installPrompt) return;
     await installPrompt.prompt();
@@ -113,25 +141,33 @@ export const App: React.FC = () => {
     );
   }, [store.films, store.entries, store.lists, store.profile, filter]);
 
-  const hasData = Object.keys(store.films).length > 0;
+  const isSharedView = Boolean(sharedViewData);
+  const activeFilms = sharedViewData ? sharedViewData.films : store.films;
+  const activeProfile = sharedViewData ? sharedViewData.profile : store.profile;
+  const activeSnapshot = sharedViewData ? sharedViewData.snapshot : snapshot;
+
+  const hasData = Object.keys(activeFilms).length > 0;
   const isImporting =
-    store.status === 'parsing' ||
-    store.status === 'matching' ||
-    store.status === 'enriching' ||
-    store.status === 'paused';
+    !isSharedView &&
+    (store.status === 'parsing' ||
+      store.status === 'matching' ||
+      store.status === 'enriching' ||
+      store.status === 'paused');
 
   // Available years for dropdown
   const availableYears = useMemo(() => {
-    return snapshot.s3Volume.yearlyVolume.map((y) => y.year);
-  }, [snapshot]);
+    return activeSnapshot.s3Volume.yearlyVolume.map((y) => y.year);
+  }, [activeSnapshot]);
 
   const matchedCount = useMemo(() => {
-    return Object.values(store.films).filter((f) => f.match.status === 'confident').length;
-  }, [store.films]);
+    return isSharedView
+      ? activeSnapshot.s1Snapshot.totalFilms
+      : Object.values(activeFilms).filter((f) => f.match.status === 'confident').length;
+  }, [isSharedView, activeSnapshot, activeFilms]);
 
   // Drawer handlers
   const handleOpenFilmDetail = (filmKey: string) => {
-    const film = store.films[filmKey];
+    const film = activeFilms[filmKey];
     setDrawerState({
       isOpen: true,
       title: film?.name || 'Film Details',
@@ -159,7 +195,7 @@ export const App: React.FC = () => {
   };
 
   const handleSelectRating = (rating: number) => {
-    const matchingKeys = Object.values(store.films)
+    const matchingKeys = Object.values(activeFilms)
       .filter((f) => f.rating === rating)
       .map((f) => f.letterboxdUri);
     setDrawerState({
@@ -197,9 +233,32 @@ export const App: React.FC = () => {
         onOpenQualityModal={() => setIsQualityOpen(true)}
         onInstallPwa={handleInstallPwa}
         canInstallPwa={Boolean(installPrompt)}
-        totalFilms={Object.keys(store.films).length}
+        totalFilms={Object.keys(activeFilms).length}
         matchedCount={matchedCount}
       />
+
+      {/* Read-Only Shared View Top Banner */}
+      {isSharedView && (
+        <div className="sticky top-14 z-40 flex flex-wrap items-center justify-between gap-3 border-b border-[#00e054]/30 bg-[#1b2026]/95 px-4 py-2.5 backdrop-blur-md sm:px-6">
+          <div className="flex items-center space-x-2 text-xs text-[#ccdde6]">
+            <span className="inline-block h-2 w-2 rounded-full bg-[#00e054] animate-pulse" />
+            <span>
+              Viewing shared stats from{' '}
+              <strong className="text-white font-bold">@{activeProfile?.username || 'user'}</strong>
+            </span>
+          </div>
+
+          <button
+            onClick={() => {
+              window.location.hash = '';
+              setSharedViewData(null);
+            }}
+            className="inline-flex items-center gap-1.5 rounded-lg bg-[#00e054] px-3 py-1.5 text-xs font-bold text-[#14181c] shadow hover:bg-[#00c047] transition-all"
+          >
+            <span>Import your own Letterboxd export to analyze your library</span>
+          </button>
+        </div>
+      )}
 
       {/* Global Control Bar when data exists */}
       {hasData && (
@@ -210,8 +269,8 @@ export const App: React.FC = () => {
             tracker.track({ name: 'filter_change', properties: { range: nextFilter.range } });
           }}
           availableYears={availableYears}
-          totalFilms={snapshot.s1Snapshot.totalFilms}
-          dateUnknownCount={snapshot.s1Snapshot.dateUnknownCount}
+          totalFilms={activeSnapshot.s1Snapshot.totalFilms}
+          dateUnknownCount={activeSnapshot.s1Snapshot.dateUnknownCount}
           matchedCount={matchedCount}
         />
       )}
@@ -269,9 +328,9 @@ export const App: React.FC = () => {
             {hasData && (
               <div className="opacity-90 transition-opacity">
                 <S1SnapshotSection
-                  snapshot={snapshot.s1Snapshot}
-                  profile={store.profile}
-                  filmsRecord={store.films}
+                  snapshot={activeSnapshot.s1Snapshot}
+                  profile={activeProfile}
+                  filmsRecord={activeFilms}
                   onSelectFilm={handleOpenFilmDetail}
                 />
               </div>
@@ -283,70 +342,72 @@ export const App: React.FC = () => {
         {hasData && !isImporting && (
           <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8 space-y-20">
             <S1SnapshotSection
-              snapshot={snapshot.s1Snapshot}
-              profile={store.profile}
-              filmsRecord={store.films}
+              snapshot={activeSnapshot.s1Snapshot}
+              profile={activeProfile}
+              filmsRecord={activeFilms}
               onSelectFilm={handleOpenFilmDetail}
             />
 
-            <S2IdentitySection identity={snapshot.s2Identity} />
+            <S2IdentitySection identity={activeSnapshot.s2Identity} />
 
             <S3VolumeSection
-              volume={snapshot.s3Volume}
+              volume={activeSnapshot.s3Volume}
               onSelectDay={handleSelectDay}
               onSelectMarathon={handleSelectMarathon}
             />
 
             <S4RatingsSection
-              ratings={snapshot.s4Ratings}
+              ratings={activeSnapshot.s4Ratings}
               onSelectRating={handleSelectRating}
               onSelectFilm={handleOpenFilmDetail}
             />
 
             <S5CrowdSection
-              crowd={snapshot.s5Crowd}
+              crowd={activeSnapshot.s5Crowd}
               onSelectFilm={handleOpenFilmDetail}
             />
 
             <S6TasteSection
-              taste={snapshot.s6Taste}
-              overallMean={snapshot.s1Snapshot.averageRating}
+              taste={activeSnapshot.s6Taste}
+              overallMean={activeSnapshot.s1Snapshot.averageRating}
             />
 
             <S7PeopleSection
-              people={snapshot.s7People}
-              overallMean={snapshot.s1Snapshot.averageRating}
+              people={activeSnapshot.s7People}
+              overallMean={activeSnapshot.s1Snapshot.averageRating}
               onSelectPerson={handleSelectPerson}
             />
 
             <S8WorldSection
-              world={snapshot.s8World}
+              world={activeSnapshot.s8World}
               onSelectGroup={handleSelectGroup}
             />
 
             <S9GenresDecadesSection
-              genresDecades={snapshot.s9Genres}
+              genresDecades={activeSnapshot.s9Genres}
               onSelectFilm={handleOpenFilmDetail}
             />
 
             <S10RewatchesSection
-              rewatches={snapshot.s10Rewatches}
+              rewatches={activeSnapshot.s10Rewatches}
               onSelectFilm={handleOpenFilmDetail}
             />
 
-            <S11WordsTagsSection wordsLists={snapshot.s11WordsLists} />
+            <S11WordsTagsSection wordsLists={activeSnapshot.s11WordsLists} />
 
             <S12WatchlistSection
-              watchlist={snapshot.s12Watchlist}
+              watchlist={activeSnapshot.s12Watchlist}
               onSelectFilm={handleOpenFilmDetail}
             />
 
             <S13RecordsSection
-              records={snapshot.s13Records}
+              records={activeSnapshot.s13Records}
               onSelectFilm={handleOpenFilmDetail}
             />
 
             <S14ShareSection
+              snapshot={activeSnapshot}
+              profile={activeProfile}
               onOpenShareModal={() => setIsShareModalOpen(true)}
             />
           </div>
@@ -362,7 +423,7 @@ export const App: React.FC = () => {
         title={drawerState.title}
         subtitle={drawerState.subtitle}
         filmKeys={drawerState.filmKeys}
-        filmsRecord={store.films}
+        filmsRecord={activeFilms}
         onClose={() => setDrawerState((prev) => ({ ...prev, isOpen: false }))}
       />
 
@@ -373,7 +434,7 @@ export const App: React.FC = () => {
       {isQualityOpen && (
         <DataQualityModal
           report={store.report}
-          films={store.films}
+          films={activeFilms}
           onClose={() => setIsQualityOpen(false)}
           onOpenReviewMatches={() => setIsReviewMatchesOpen(true)}
           onClearData={store.clearAllData}
@@ -382,7 +443,7 @@ export const App: React.FC = () => {
 
       {isReviewMatchesOpen && (
         <ReviewMatchesModal
-          films={store.films}
+          films={activeFilms}
           onClose={() => setIsReviewMatchesOpen(false)}
           onOverrideMatch={store.overrideMatch}
         />
@@ -390,7 +451,8 @@ export const App: React.FC = () => {
 
       {isShareModalOpen && (
         <ShareCardModal
-          snapshot={snapshot}
+          snapshot={activeSnapshot}
+          profile={activeProfile}
           onClose={() => setIsShareModalOpen(false)}
         />
       )}

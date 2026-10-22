@@ -21,7 +21,7 @@ export type TelemetryEvent =
     }
   | { name: 'import_error'; properties: { errorType: string } }
   | { name: 'filter_change'; properties: { range: string } }
-  | { name: 'share_card_generated'; properties: { format: 'square' | 'story' } }
+  | { name: 'share_card_generated'; properties: { format: 'square' | 'story' | 'url_compact' | 'url_full' } }
   | { name: 'pwa_installed'; properties?: Record<string, never> }
   | { name: 'byok_enabled'; properties?: Record<string, never> };
 
