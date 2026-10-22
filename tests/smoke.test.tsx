@@ -6,7 +6,8 @@ import { CONFIG } from '../src/config/env.ts';
 describe('Phase 1: App Smoke & Layout Shell', () => {
   it('loads configuration constants with valid defaults', () => {
     expect(CONFIG.siteName).toBe('Letterboxd Pro Analytics');
-    expect(CONFIG.authorName).toBe('R. Shafi');
+    expect(CONFIG.authorName).toBe('Shafi Rayhan');
+    expect(CONFIG.authorEmail).toBe('shafirayhan@proton.me');
     expect(CONFIG.tmdbFallbackKey).toBe('1426684c151e5ca03cfd5a6952e73c46');
   });
 

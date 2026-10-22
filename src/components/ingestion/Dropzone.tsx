@@ -152,9 +152,25 @@ export const Dropzone: React.FC<DropzoneProps> = ({
             className="inline-flex items-center gap-1 text-[#40bcf4] hover:underline"
           >
             <Key className="h-3.5 w-3.5" />
-            <span>Custom TMDb Key (BYOK)</span>
+            <span>Custom API Key (BYOK)</span>
           </button>
         </div>
+      </div>
+
+      {/* BYOK Callout Card */}
+      <div className="mt-4 flex items-center justify-between rounded-lg border border-[#2c3440] bg-[#14181c] p-3.5 text-xs text-[#ccdde6]">
+        <div className="flex items-center gap-2.5">
+          <Key className="h-4 w-4 shrink-0 text-[#00e054]" />
+          <span>
+            <strong>Bring Your Own Key (Optional):</strong> Add your free TMDb API key for higher rate limits and faster enrichment. Stored locally only in your browser.
+          </span>
+        </div>
+        <button
+          onClick={onOpenSettings}
+          className="ml-3 shrink-0 rounded bg-[#222831] px-2.5 py-1 text-xs font-semibold text-white border border-[#2c3440] hover:border-[#00e054] transition-colors"
+        >
+          Add Key
+        </button>
       </div>
 
       {/* Instructions callout */}

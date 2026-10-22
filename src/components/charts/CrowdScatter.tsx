@@ -25,11 +25,13 @@ export const CrowdScatter: React.FC<CrowdScatterProps> = ({
       {/* Metrics Banner */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
         <div className="rounded-lg border border-[#2c3440] bg-[#14181c] p-3 text-center">
-          <div className="text-xs text-[#99aabb]">Crowd Correlation (r)</div>
+          <div className="text-xs text-[#99aabb]">Crowd Correlation</div>
           <div className="mt-1 font-display text-xl font-bold text-white">
             {correlationR !== null ? correlationR.toFixed(2) : 'N/A (min n=20)'}
           </div>
-          <div className="text-[10px] text-[#99aabb]/60 mt-0.5">Pearson Coefficient</div>
+          <div className="text-[10px] text-[#99aabb]/60 mt-0.5" title="How closely your ratings align with the global community (+1.0 is lockstep, 0 is independent, negative is contrarian).">
+            Alignment with crowd (-1.0 to +1.0)
+          </div>
         </div>
 
         <div className="rounded-lg border border-[#2c3440] bg-[#14181c] p-3 text-center">
@@ -45,7 +47,7 @@ export const CrowdScatter: React.FC<CrowdScatterProps> = ({
           <div className="mt-1 font-display text-xl font-bold text-[#40bcf4]">
             {biggestOverrates.length + biggestUnderrates.length > 0 ? 'Qualified' : 'Collecting'}
           </div>
-          <div className="text-[10px] text-[#99aabb]/60 mt-0.5">Films with &gt;= 100 TMDb votes</div>
+          <div className="text-[10px] text-[#99aabb]/60 mt-0.5">Films with &gt;= 100 community votes</div>
         </div>
       </div>
 
@@ -79,7 +81,7 @@ export const CrowdScatter: React.FC<CrowdScatterProps> = ({
                   <div className="truncate">
                     <div className="text-xs font-semibold text-white truncate">{point.title}</div>
                     <div className="text-[10px] text-[#99aabb]">
-                      You: <span className="font-bold text-[#00e054]">{point.userRating}★</span> vs TMDb: {point.tmdbRatingNorm}★
+                      You: <span className="font-bold text-[#00e054]">{point.userRating}★</span> vs Crowd: {point.tmdbRatingNorm}★
                     </div>
                   </div>
                 </div>
@@ -120,7 +122,7 @@ export const CrowdScatter: React.FC<CrowdScatterProps> = ({
                   <div className="truncate">
                     <div className="text-xs font-semibold text-white truncate">{point.title}</div>
                     <div className="text-[10px] text-[#99aabb]">
-                      You: <span className="font-bold text-[#ff8000]">{point.userRating}★</span> vs TMDb: {point.tmdbRatingNorm}★
+                      You: <span className="font-bold text-[#ff8000]">{point.userRating}★</span> vs Crowd: {point.tmdbRatingNorm}★
                     </div>
                   </div>
                 </div>

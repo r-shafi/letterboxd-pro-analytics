@@ -81,13 +81,13 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
 
           {/* Form */}
           <form onSubmit={handleValidateAndSave} className="space-y-3">
+            <div className="rounded-lg border border-[#2c3440] bg-[#14181c] p-3 text-xs leading-relaxed text-[#ccdde6]">
+              <strong>Bring Your Own Key (Optional):</strong> Add your free TMDb API key for higher rate limits and faster enrichment. Stored locally only in your browser.
+            </div>
+
             <label className="block font-semibold text-white">
               Enter TMDb API Key (v3) or Read Access Token (v4)
             </label>
-            <p className="text-[#99aabb] leading-relaxed">
-              For libraries larger than 500 films, Bring-Your-Own-Key (BYOK) prevents shared rate-limiting.
-              Your key is saved only in your browser&apos;s local storage.
-            </p>
 
             <div className="flex gap-2">
               <input

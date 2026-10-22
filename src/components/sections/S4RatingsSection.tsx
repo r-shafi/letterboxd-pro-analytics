@@ -74,7 +74,7 @@ export const S4RatingsSection: React.FC<S4RatingsSectionProps> = ({
           {/* Generous vs Harshest Years */}
           <div className="border-t border-[#2c3440] pt-3 text-[11px] space-y-1.5">
             <div className="text-[10px] text-[#99aabb]/70 uppercase tracking-wider font-semibold">
-              By Release Year (min 5 films, smoothed with Bayesian shrinkage)
+              By Release Year (min 5 films, balanced against overall average)
             </div>
             {ratings.mostGenerousYear && (
               <div className="flex justify-between text-[#99aabb]">

@@ -15,7 +15,7 @@ export const S5CrowdSection: React.FC<S5CrowdSectionProps> = ({ crowd, onSelectF
           Section 05 • Crowd Comparison
         </div>
         <h2 className="font-display text-2xl font-bold text-white sm:text-3xl">
-          You vs The TMDb Consensus
+          You vs Global Consensus
         </h2>
         <p className="mt-1 text-xs text-[#99aabb]">
           Correlation, mean divergence, and your boldest rating disagreements against millions of global movie fans.

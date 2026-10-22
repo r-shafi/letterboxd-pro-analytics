@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { S3Volume, HeatmapDayCell } from '../../services/analytics/types.ts';
 import { CalendarHeatmap } from '../charts/CalendarHeatmap.tsx';
 import { Flame, Award, Zap, TrendingUp, Clock } from 'lucide-react';
@@ -14,6 +14,15 @@ export const S3VolumeSection: React.FC<S3VolumeSectionProps> = ({
   onSelectDay,
   onSelectMarathon
 }) => {
+  const [selectedCalendarView, setSelectedCalendarView] = useState<string>('trailing365');
+  const availableCalendarYears = Object.keys(volume.yearlyCalendars || {})
+    .map(Number)
+    .sort((a, b) => b - a);
+
+  const activeCalendarDays =
+    selectedCalendarView === 'trailing365'
+      ? volume.trailing365Calendar
+      : volume.yearlyCalendars[Number(selectedCalendarView)] || volume.trailing365Calendar;
   return (
     <section id="s3-volume" className="space-y-6">
       <div className="border-b border-[#2c3440] pb-2">
@@ -77,27 +86,63 @@ export const S3VolumeSection: React.FC<S3VolumeSectionProps> = ({
         </div>
       </div>
 
-      {/* 365-Day Activity Calendar Card */}
+      {/* Activity Calendar Card with Year Switcher */}
       <div className="rounded-xl border border-[#2c3440] bg-[#1b2026] p-6 shadow-xl space-y-4">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#2c3440] pb-3">
           <div>
-            <h3 className="text-base font-bold text-white">Trailing 365-Day Activity</h3>
+            <h3 className="text-base font-bold text-white">
+              {selectedCalendarView === 'trailing365'
+                ? 'Trailing 365-Day Activity'
+                : `${selectedCalendarView} Activity Calendar`}
+            </h3>
             <p className="text-xs text-[#99aabb]">
-              Every day watched over the last 365 days ending today. Tap any cell to view films.
+              {selectedCalendarView === 'trailing365'
+                ? 'Every day watched over the last 365 days ending today. Tap any cell to view films.'
+                : `Every day watched in ${selectedCalendarView}. Tap any cell to view films.`}
               {volume.dateUnknownCount > 0 && ` (${volume.dateUnknownCount} films without a watch date are not shown).`}
             </p>
           </div>
-          {volume.busiestDay && (
-            <div className="hidden sm:block text-right text-xs">
-              <span className="text-[#99aabb]">Peak Day: </span>
-              <span className="font-mono font-bold text-[#00e054]">{volume.busiestDay.date}</span>
-              <span className="text-[#99aabb]"> ({volume.busiestDay.count} films)</span>
+
+          <div className="flex flex-wrap items-center gap-2">
+            {volume.busiestDay && (
+              <div className="hidden lg:block text-right text-xs pr-2">
+                <span className="text-[#99aabb]">Peak Day: </span>
+                <span className="font-mono font-bold text-[#00e054]">{volume.busiestDay.date}</span>
+                <span className="text-[#99aabb]"> ({volume.busiestDay.count} films)</span>
+              </div>
+            )}
+
+            {/* Year Switcher Pills */}
+            <div className="flex flex-wrap items-center gap-1 rounded-lg bg-[#14181c] p-1 border border-[#2c3440]" data-testid="calendar-year-switcher">
+              <button
+                onClick={() => setSelectedCalendarView('trailing365')}
+                className={`rounded px-2.5 py-1 text-xs font-medium transition-colors ${
+                  selectedCalendarView === 'trailing365'
+                    ? 'bg-[#00e054] text-[#14181c] font-bold shadow'
+                    : 'text-[#99aabb] hover:text-white'
+                }`}
+              >
+                Trailing 365
+              </button>
+              {availableCalendarYears.map((yr) => (
+                <button
+                  key={yr}
+                  onClick={() => setSelectedCalendarView(String(yr))}
+                  className={`rounded px-2.5 py-1 text-xs font-medium transition-colors ${
+                    selectedCalendarView === String(yr)
+                      ? 'bg-[#00e054] text-[#14181c] font-bold shadow'
+                      : 'text-[#99aabb] hover:text-white'
+                  }`}
+                >
+                  {yr}
+                </button>
+              ))}
             </div>
-          )}
+          </div>
         </div>
 
         <CalendarHeatmap
-          days={volume.trailing365Calendar}
+          days={activeCalendarDays}
           onSelectDay={onSelectDay}
         />
       </div>

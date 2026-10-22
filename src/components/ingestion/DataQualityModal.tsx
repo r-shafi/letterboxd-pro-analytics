@@ -135,7 +135,7 @@ export const DataQualityModal: React.FC<DataQualityModalProps> = ({
           {/* Metadata Coverage */}
           <div>
             <h4 className="text-xs font-bold uppercase tracking-wider text-white">
-              TMDb Metadata Coverage
+              Metadata Enrichment Coverage
             </h4>
             <div className="mt-2 space-y-2 text-xs">
               <div className="flex justify-between text-[#99aabb]">

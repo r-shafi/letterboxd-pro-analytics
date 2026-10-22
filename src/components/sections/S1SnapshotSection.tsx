@@ -134,7 +134,7 @@ export const S1SnapshotSection: React.FC<S1SnapshotSectionProps> = ({
             {snapshot.runtimeCoveragePercent === 100
               ? duration.detailed
               : snapshot.runtimeCoveragePercent === 0
-                ? 'Loading runtimes from TMDb...'
+                ? 'Loading movie runtimes...'
                 : `${duration.detailed} (${snapshot.runtimeCoveragePercent}% runtime coverage)`}
           </div>
         </div>

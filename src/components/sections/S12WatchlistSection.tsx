@@ -70,10 +70,10 @@ export const S12WatchlistSection: React.FC<S12WatchlistSectionProps> = ({
               <Sparkles className="h-4 w-4 text-[#ff8000]" />
             </div>
             <div className="mt-2 font-display text-xl font-bold text-white">
-              MAE &plusmn;{watchlist.predictionModelMae}★
+              Avg Error &plusmn;{watchlist.predictionModelMae}★
             </div>
             <div className="mt-0.5 text-[10px] text-[#99aabb]">
-              Leave-one-out backtest error
+              Typical prediction spread
             </div>
           </div>
 

@@ -112,7 +112,7 @@ export const S13RecordsSection: React.FC<S13RecordsSectionProps> = ({
           <div className="rounded-xl border border-[#2c3440] bg-[#1b2026] p-5 shadow flex flex-col justify-between">
             <div>
               <div className="flex items-center justify-between text-[#99aabb]">
-                <span className="text-[11px] font-semibold uppercase tracking-wider">Most Popular TMDb Title</span>
+                <span className="text-[11px] font-semibold uppercase tracking-wider">Most Popular Global Title</span>
                 <TrendingUp className="h-4 w-4 text-[#00e054]" />
               </div>
               <button

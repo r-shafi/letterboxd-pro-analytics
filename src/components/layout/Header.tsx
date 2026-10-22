@@ -108,7 +108,7 @@ export const Header: React.FC<HeaderProps> = ({
           <button
             onClick={onOpenSettings}
             className="flex h-8 w-8 items-center justify-center rounded border border-[#2c3440] bg-[#1b2026] text-[#99aabb] transition-colors hover:border-[#00e054] hover:text-white"
-            title="Settings & TMDb API Key"
+            title="Settings & API Key"
             aria-label="Settings"
           >
             <Settings className="h-4 w-4" />

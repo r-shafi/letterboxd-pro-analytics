@@ -47,6 +47,7 @@ import {
   isLeapYear
 } from '../../utils/date.ts';
 import { extractTopReviewWords } from './stopwords.ts';
+import { getFullLanguageName } from '../../utils/language.ts';
 
 const MONTH_NAMES = [
   '', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
@@ -742,11 +743,11 @@ export function calculateAnalyticsSnapshot(
 
   const languageAffinity = Array.from(languageRatings.entries())
     .filter(([_, rList]) => rList.length >= 3)
-    .map(([name, rList]) => {
+    .map(([code, rList]) => {
       const rawMean = mean(rList);
       const shrunkMean = bayesianShrinkage(rawMean, rList.length, overallMean, 5);
       return {
-        name,
+        name: getFullLanguageName(code),
         n: rList.length,
         rawMean: roundToOneDecimal(rawMean),
         shrunkMean: roundToOneDecimal(shrunkMean),
@@ -1004,11 +1005,7 @@ export function calculateAnalyticsSnapshot(
     });
 
     if (meta.originalLanguage) {
-      let langName = meta.originalLanguage;
-      // Normalization per spec: cn -> Cantonese, xx -> no language, und -> unknown
-      if (meta.originalLanguage === 'cn') langName = 'Cantonese';
-      else if (meta.originalLanguage === 'xx') langName = 'No Language';
-      else if (meta.originalLanguage === 'und') langName = 'Unknown';
+      const langName = getFullLanguageName(meta.originalLanguage);
 
       if (!langStatsMap.has(meta.originalLanguage)) {
         langStatsMap.set(meta.originalLanguage, { name: langName, count: 0, ratings: [], keys: [] });

@@ -33,8 +33,8 @@ export const ControlBar: React.FC<ControlBarProps> = ({
   };
 
   return (
-    <div className="sticky top-14 z-30 w-full border-b border-[#2c3440] bg-[#1b2026]/95 backdrop-blur-md py-2.5 px-4 sm:px-6 lg:px-8 transition-all">
-      <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3 text-xs">
+    <div className="sticky top-14 z-30 w-full border-b border-[#2c3440] bg-[#1b2026]/95 backdrop-blur-md transition-all">
+      <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3 px-4 sm:px-6 lg:px-8 py-2.5 text-xs">
         {/* Time Range Filter Controls */}
         <div className="flex flex-wrap items-center gap-2">
           <div className="flex items-center gap-1.5 font-medium text-[#99aabb]">
@@ -98,7 +98,7 @@ export const ControlBar: React.FC<ControlBarProps> = ({
 
           <div className="hidden sm:flex items-center gap-1 rounded bg-[#14181c] px-2 py-0.5 border border-[#2c3440]">
             <span className="h-2 w-2 rounded-full bg-[#00e054]" />
-            <span>TMDb Coverage: <span className="font-mono text-[#ccdde6]">{matchedCount}/{totalFilms}</span></span>
+            <span>Metadata Coverage: <span className="font-mono text-[#ccdde6]">{matchedCount}/{totalFilms}</span></span>
           </div>
         </div>
       </div>

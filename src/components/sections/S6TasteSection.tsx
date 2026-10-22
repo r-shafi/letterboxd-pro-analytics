@@ -20,7 +20,7 @@ export const S6TasteSection: React.FC<S6TasteSectionProps> = ({ taste, overallMe
           Taste Affinities & Preferences
         </h2>
         <p className="mt-1 text-xs text-[#99aabb]">
-          Bayesian-smoothed preference deltas, mainstream vs obscure balance, runtime sweet-spots, and diversity entropy.
+          Preference highlights, mainstream vs obscure balance, runtime sweet-spots, and viewing diversity.
         </p>
       </div>
 
@@ -56,7 +56,7 @@ export const S6TasteSection: React.FC<S6TasteSectionProps> = ({ taste, overallMe
             </div>
 
             <p className="text-xs text-[#ccdde6] leading-relaxed">
-              Percentage of films in your library with low TMDb popularity (&lt; 15).
+              Percentage of films in your library with low mainstream popularity (&lt; 15).
               {taste.hipsterIndex >= 30
                 ? ' You frequently venture deep into indie and arthouse cinema.'
                 : ' You gravitate primarily towards widely recognized releases.'}

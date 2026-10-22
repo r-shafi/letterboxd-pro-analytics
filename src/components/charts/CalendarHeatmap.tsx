@@ -1,5 +1,6 @@
 import React, { useRef, useEffect } from 'react';
 import { HeatmapDayCell } from '../../services/analytics/types.ts';
+import { getTodayCalendarDate } from '../../utils/date.ts';
 
 interface CalendarHeatmapProps {
   days: HeatmapDayCell[];
@@ -8,6 +9,7 @@ interface CalendarHeatmapProps {
 
 export const CalendarHeatmap: React.FC<CalendarHeatmapProps> = ({ days, onSelectDay }) => {
   const containerRef = useRef<HTMLDivElement>(null);
+  const todayStr = getTodayCalendarDate();
 
   useEffect(() => {
     // Automatically scroll to today on mobile
@@ -82,14 +84,24 @@ export const CalendarHeatmap: React.FC<CalendarHeatmapProps> = ({ days, onSelect
                       return <div key={dIdx} className="h-3 w-3 rounded-sm opacity-0" />;
                     }
 
+                    const isToday = cell.date === todayStr;
+
                     return (
                       <button
                         key={dIdx}
                         onClick={() => onSelectDay(cell)}
-                        className="h-3 w-3 rounded-sm transition-transform hover:scale-125 hover:z-10 focus:outline-none"
-                        style={{ backgroundColor: getColor(cell.count) }}
-                        title={`${cell.date}: ${cell.count} films watched`}
-                        aria-label={`${cell.date}: ${cell.count} films watched`}
+                        data-testid={isToday ? 'calendar-cell-today' : undefined}
+                        className={`h-3 w-3 rounded-sm transition-transform hover:scale-125 hover:z-10 focus:outline-none ${
+                          isToday
+                            ? 'ring-2 ring-[#e5a00d] ring-offset-1 ring-offset-[#14181c] shadow-[0_0_8px_rgba(229,160,13,0.8)]'
+                            : ''
+                        }`}
+                        style={{
+                          backgroundColor: getColor(cell.count),
+                          ...(isToday ? { borderColor: '#ffd700', borderWidth: '1px' } : {})
+                        }}
+                        title={`${cell.date}${isToday ? ' (Today)' : ''}: ${cell.count} films watched`}
+                        aria-label={`${cell.date}${isToday ? ' (Today)' : ''}: ${cell.count} films watched`}
                       />
                     );
                   })}

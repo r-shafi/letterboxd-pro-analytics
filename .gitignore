@@ -35,4 +35,5 @@ letterboxd-*.zip
 /data/real/*
 scripts/verifyRealExport.ts
 scripts/real-*
+scripts/capture*
 *.real.json

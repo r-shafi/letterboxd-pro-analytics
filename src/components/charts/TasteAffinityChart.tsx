@@ -90,7 +90,7 @@ export const TasteAffinityChart: React.FC<TasteAffinityChartProps> = ({
       </div>
 
       <div className="text-[10px] text-[#99aabb] text-center border-t border-[#2c3440] pt-2">
-        Affinities smoothed using Bayesian shrinkage (k=5) against your overall baseline ({formatRating(overallMean, 2)}).
+        Smoothed to balance small samples against your overall average ({formatRating(overallMean, 2)}).
       </div>
     </div>
   );
