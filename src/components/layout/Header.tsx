@@ -1,18 +1,24 @@
 import React, { useState, useEffect } from 'react';
 import { BrandLogo } from '../common/BrandLogo.tsx';
 import { CONFIG } from '../../config/env.ts';
-import { Star, Settings, ShieldCheck, Database } from 'lucide-react';
+import { Star, Settings, ShieldCheck, Database, Download } from 'lucide-react';
 
 interface HeaderProps {
   onOpenSettings: () => void;
+  onOpenPrivacy?: () => void;
   onOpenQualityModal?: () => void;
+  onInstallPwa?: () => void;
+  canInstallPwa?: boolean;
   totalFilms?: number;
   matchedCount?: number;
 }
 
 export const Header: React.FC<HeaderProps> = ({
   onOpenSettings,
+  onOpenPrivacy,
   onOpenQualityModal,
+  onInstallPwa,
+  canInstallPwa = false,
   totalFilms,
   matchedCount
 }) => {
@@ -67,13 +73,36 @@ export const Header: React.FC<HeaderProps> = ({
           )}
 
           {/* Privacy badge */}
-          <div
-            className="hidden items-center gap-1 text-xs text-[#99aabb] md:flex"
-            title="100% In-Browser Computation. No film data leaves your device."
-          >
-            <ShieldCheck className="h-3.5 w-3.5 text-[#00e054]" />
-            <span className="text-[11px] font-medium uppercase tracking-wider">Private & Local</span>
-          </div>
+          {onOpenPrivacy ? (
+            <button
+              onClick={onOpenPrivacy}
+              className="hidden items-center gap-1 text-xs text-[#99aabb] hover:text-[#00e054] md:flex transition-colors cursor-pointer"
+              title="100% In-Browser Computation. View Privacy Guarantee & Disclaimers."
+            >
+              <ShieldCheck className="h-3.5 w-3.5 text-[#00e054]" />
+              <span className="text-[11px] font-medium uppercase tracking-wider">Private & Local</span>
+            </button>
+          ) : (
+            <div
+              className="hidden items-center gap-1 text-xs text-[#99aabb] md:flex"
+              title="100% In-Browser Computation. No film data leaves your device."
+            >
+              <ShieldCheck className="h-3.5 w-3.5 text-[#00e054]" />
+              <span className="text-[11px] font-medium uppercase tracking-wider">Private & Local</span>
+            </div>
+          )}
+
+          {/* PWA Install Button */}
+          {canInstallPwa && onInstallPwa && (
+            <button
+              onClick={onInstallPwa}
+              className="flex items-center gap-1.5 rounded border border-[#00e054]/40 bg-[#00e054]/10 px-2.5 py-1 text-xs font-semibold text-[#00e054] hover:bg-[#00e054]/20 transition-all"
+              title="Install Web App for offline access"
+            >
+              <Download className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">Install App</span>
+            </button>
+          )}
 
           {/* Settings / BYOK Modal Trigger */}
           <button

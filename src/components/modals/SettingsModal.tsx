@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { tmdbClient } from '../../services/tmdb/client.ts';
+import { tracker } from '../../services/telemetry/tracker.ts';
 import { X, Key, Check, AlertCircle, Trash2, ExternalLink } from 'lucide-react';
 
 interface SettingsModalProps {
@@ -26,6 +27,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
     if (isValid) {
       setValidationStatus('valid');
       tmdbClient.setApiKeyOrToken(key);
+      tracker.track({ name: 'byok_enabled' });
       setUsingUserKey(true);
       setApiKeyInput('');
     } else {

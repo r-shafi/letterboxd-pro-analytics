@@ -5,6 +5,7 @@ import { CONFIG } from '../../config/env.ts';
 import { BrandLogo } from '../common/BrandLogo.tsx';
 import { X, Download, Share2, Sparkles } from 'lucide-react';
 import { formatWatchDuration } from '../../utils/date.ts';
+import { tracker } from '../../services/telemetry/tracker.ts';
 
 interface ShareCardModalProps {
   snapshot: AnalyticsSnapshot;
@@ -52,6 +53,7 @@ export const ShareCardModal: React.FC<ShareCardModalProps> = ({ snapshot, onClos
     setIsExporting(true);
     try {
       const dataUrl = await toPng(cardRef.current, { cacheBust: true, pixelRatio: 2 });
+      tracker.track({ name: 'share_card_generated', properties: { format: aspectRatio } });
       const blob = await (await fetch(dataUrl)).blob();
       const file = new File([blob], 'letterboxd_analytics_share.png', { type: 'image/png' });
 

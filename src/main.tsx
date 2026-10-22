@@ -11,6 +11,8 @@ import { ShareCardModal } from './components/dashboard/ShareCardModal.tsx';
 import { DataQualityModal } from './components/ingestion/DataQualityModal.tsx';
 import { ReviewMatchesModal } from './components/ingestion/ReviewMatchesModal.tsx';
 import { SettingsModal } from './components/modals/SettingsModal.tsx';
+import { PrivacyModal } from './components/modals/PrivacyModal.tsx';
+import { tracker, getFilmCountBucket } from './services/telemetry/tracker.ts';
 
 import { S1SnapshotSection } from './components/sections/S1SnapshotSection.tsx';
 import { S2IdentitySection } from './components/sections/S2IdentitySection.tsx';
@@ -56,10 +58,49 @@ export const App: React.FC = () => {
     filmKeys: []
   });
 
-  // Hydrate on mount
+  interface BeforeInstallPromptEvent extends Event {
+    prompt: () => Promise<void>;
+    userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>;
+  }
+
+  const [installPrompt, setInstallPrompt] = useState<BeforeInstallPromptEvent | null>(null);
+
+  // Hydrate on mount & track pageview / PWA install event
   useEffect(() => {
     store.hydrateFromStorage();
+    tracker.track({ name: 'pageview', properties: { path: window.location.pathname } });
+
+    const handleBeforeInstall = (e: Event) => {
+      e.preventDefault();
+      setInstallPrompt(e as BeforeInstallPromptEvent);
+    };
+
+    window.addEventListener('beforeinstallprompt', handleBeforeInstall);
+    return () => window.removeEventListener('beforeinstallprompt', handleBeforeInstall);
   }, []);
+
+  const handleInstallPwa = async () => {
+    if (!installPrompt) return;
+    await installPrompt.prompt();
+    const result = await installPrompt.userChoice;
+    if (result.outcome === 'accepted') {
+      tracker.track({ name: 'pwa_installed' });
+    }
+    setInstallPrompt(null);
+  };
+
+  useEffect(() => {
+    if (store.status === 'completed' && Object.keys(store.films).length > 0) {
+      const count = Object.keys(store.films).length;
+      tracker.track({
+        name: 'import_complete',
+        properties: {
+          filmCountBucket: getFilmCountBucket(count),
+          durationSec: 1
+        }
+      });
+    }
+  }, [store.status]);
 
   // Compute analytics snapshot memoized on films, entries, filter
   const snapshot = useMemo(() => {
@@ -152,7 +193,10 @@ export const App: React.FC = () => {
       {/* Sticky App Header */}
       <Header
         onOpenSettings={() => setIsSettingsOpen(true)}
+        onOpenPrivacy={() => setIsPrivacyOpen(true)}
         onOpenQualityModal={() => setIsQualityOpen(true)}
+        onInstallPwa={handleInstallPwa}
+        canInstallPwa={Boolean(installPrompt)}
         totalFilms={Object.keys(store.films).length}
         matchedCount={matchedCount}
       />
@@ -161,7 +205,10 @@ export const App: React.FC = () => {
       {hasData && (
         <ControlBar
           filter={filter}
-          onFilterChange={setFilter}
+          onFilterChange={(nextFilter) => {
+            setFilter(nextFilter);
+            tracker.track({ name: 'filter_change', properties: { range: nextFilter.range } });
+          }}
           availableYears={availableYears}
           totalFilms={snapshot.s1Snapshot.totalFilms}
           dateUnknownCount={snapshot.s1Snapshot.dateUnknownCount}
@@ -190,10 +237,19 @@ export const App: React.FC = () => {
 
             {/* Dropzone Component */}
             <Dropzone
-              onFileSelect={(file) => store.importZip(file)}
-              onCsvFilesSelect={(files) => store.importCsvs(files)}
+              onFileSelect={(file) => {
+                tracker.track({ name: 'import_start', properties: { source: 'zip' } });
+                store.importZip(file);
+              }}
+              onCsvFilesSelect={(files) => {
+                tracker.track({ name: 'import_start', properties: { source: 'csv' } });
+                store.importCsvs(files);
+              }}
               onOpenSettings={() => setIsSettingsOpen(true)}
-              onLoadDemo={() => store.loadDemoData()}
+              onLoadDemo={() => {
+                tracker.track({ name: 'import_start', properties: { source: 'demo' } });
+                store.loadDemoData();
+              }}
             />
           </div>
         )}
@@ -339,35 +395,11 @@ export const App: React.FC = () => {
         />
       )}
 
-      {/* Privacy Guarantee Modal */}
-      {isPrivacyOpen && (
-        <div
-          role="dialog"
-          aria-modal="true"
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm"
-        >
-          <div className="w-full max-w-lg rounded-xl border border-[#2c3440] bg-[#1b2026] p-6 shadow-2xl space-y-4">
-            <h3 className="font-display text-lg font-bold text-white">Privacy Guarantee</h3>
-            <p className="text-xs text-[#ccdde6] leading-relaxed">
-              <strong>Your film history is private:</strong>
-            </p>
-            <ul className="list-disc pl-5 text-xs text-[#99aabb] space-y-1.5">
-              <li>Letterboxd zip archives and CSVs are parsed locally in your browser using a dedicated Web Worker.</li>
-              <li>Your personal data (email, family name, private profile info) is immediately discarded upon parsing.</li>
-              <li>Only public movie titles and release years are queried to TMDb for poster artwork and metadata lookups.</li>
-              <li>All processed statistics are stored solely in your device&apos;s localStorage / IndexedDB.</li>
-            </ul>
-            <div className="flex justify-end pt-2">
-              <button
-                onClick={() => setIsPrivacyOpen(false)}
-                className="rounded-lg bg-[#00e054] px-4 py-2 text-xs font-bold text-[#14181c] hover:bg-[#00c047]"
-              >
-                Understood
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Privacy Guarantee & Legal Disclaimers Modal */}
+      <PrivacyModal
+        isOpen={isPrivacyOpen}
+        onClose={() => setIsPrivacyOpen(false)}
+      />
     </div>
   );
 };
