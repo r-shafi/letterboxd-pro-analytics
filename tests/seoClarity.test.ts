@@ -9,12 +9,12 @@ describe('Phase E: Microsoft Clarity Analytics & SEO Metadata', () => {
   const sitemapPath = path.join(rootDir, 'public', 'sitemap.xml');
   const ogCardPath = path.join(rootDir, 'public', 'og-card.png');
 
-  it('index.html integrates Microsoft Clarity with ID z1k4valpyq and privacy guard', () => {
+  it('index.html integrates Microsoft Clarity with ID z1k4valpyq unconditionally from get-go', () => {
     const html = fs.readFileSync(indexPath, 'utf-8');
     expect(html).toContain('z1k4valpyq');
     expect(html).toContain('https://www.clarity.ms/tag/');
-    expect(html).toContain('navigator.doNotTrack');
     expect(html).toContain('data-clarity-mask="true"');
+    expect(html).not.toContain('navigator.doNotTrack');
   });
 
   it('index.html contains full SEO, Open Graph and Twitter metadata for https://letterboxd.ddns.net', () => {
