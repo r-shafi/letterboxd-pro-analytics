@@ -165,34 +165,93 @@ export const DataQualityModal: React.FC<DataQualityModalProps> = ({
             </div>
           </div>
 
-          {/* File Row Counts */}
-          {report && report.files.length > 0 && (
-            <div>
-              <h4 className="text-xs font-bold uppercase tracking-wider text-white">
-                Files Processed
-              </h4>
-              <div className="mt-2 max-h-40 overflow-y-auto rounded-lg border border-[#2c3440] bg-[#14181c]">
-                <table className="w-full text-left text-[11px]">
-                  <thead className="border-b border-[#2c3440] bg-[#222831] text-[#99aabb]">
-                    <tr>
-                      <th className="px-3 py-1.5 font-medium">File</th>
-                      <th className="px-3 py-1.5 font-medium">Rows</th>
-                      <th className="px-3 py-1.5 font-medium">Accepted</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-[#2c3440] text-[#ccdde6]">
-                    {report.files.map((file, idx) => (
-                      <tr key={idx}>
-                        <td className="px-3 py-1 font-mono">{file.fileName}</td>
-                        <td className="px-3 py-1">{file.rowsFound}</td>
-                        <td className="px-3 py-1 text-[#00e054]">{file.rowsAccepted}</td>
+          {/* Files Processed Table (5-column reconciled format) */}
+          {report && report.files.length > 0 && (() => {
+            const totalFound = report.files.reduce((sum, f) => sum + (f.recordsFound ?? f.rowsFound ?? 0), 0);
+            const totalAdded = report.files.reduce((sum, f) => sum + (f.recordsAdded ?? f.rowsAccepted ?? 0), 0);
+            const totalApplied = report.files.reduce((sum, f) => sum + (f.recordsApplied ?? 0), 0);
+            const totalSkipped = report.files.reduce((sum, f) => sum + (f.recordsSkipped ?? f.rowsIgnored ?? 0), 0);
+            const isReconciled = totalFound === totalAdded + totalApplied + totalSkipped;
+
+            return (
+              <div>
+                <div className="flex items-center justify-between">
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-white">
+                    Files Processed
+                  </h4>
+                  {isReconciled && (
+                    <span className="flex items-center gap-1 text-[10px] font-mono text-[#00e054]">
+                      <CheckCircle2 className="h-3 w-3" />
+                      Reconciled ({totalFound} = {totalAdded} + {totalApplied} + {totalSkipped})
+                    </span>
+                  )}
+                </div>
+                <div className="mt-2 max-h-56 overflow-y-auto rounded-lg border border-[#2c3440] bg-[#14181c]">
+                  <table className="w-full text-left text-[11px]">
+                    <thead className="sticky top-0 border-b border-[#2c3440] bg-[#222831] text-[#99aabb]">
+                      <tr>
+                        <th className="px-3 py-1.5 font-medium">File</th>
+                        <th className="px-2 py-1.5 font-medium text-right">Records found</th>
+                        <th className="px-2 py-1.5 font-medium text-right">Added</th>
+                        <th className="px-2 py-1.5 font-medium text-right">Applied to existing films</th>
+                        <th className="px-2 py-1.5 font-medium text-right">Skipped</th>
+                        <th className="px-3 py-1.5 font-medium text-center">Status</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody className="divide-y divide-[#2c3440] text-[#ccdde6]">
+                      {report.files.map((file, idx) => {
+                        const found = file.recordsFound ?? file.rowsFound ?? 0;
+                        const added = file.recordsAdded ?? file.rowsAccepted ?? 0;
+                        const applied = file.recordsApplied ?? 0;
+                        const skipped = file.recordsSkipped ?? file.rowsIgnored ?? 0;
+                        const status = file.status || (file.reason ? 'Ignored' : added > 0 ? 'Processed' : 'Merged');
+
+                        return (
+                          <tr key={idx} className={status === 'Ignored' ? 'opacity-60 bg-[#14181c]/50' : ''}>
+                            <td className="px-3 py-1.5 font-mono text-white">
+                              <div>{file.fileName}</div>
+                              {file.reason && (
+                                <div className="text-[10px] text-[#99aabb] italic">{file.reason}</div>
+                              )}
+                            </td>
+                            <td className="px-2 py-1.5 text-right font-mono">{found}</td>
+                            <td className="px-2 py-1.5 text-right font-mono text-[#00e054]">{added}</td>
+                            <td className="px-2 py-1.5 text-right font-mono text-[#40bcf4]">{applied}</td>
+                            <td className="px-2 py-1.5 text-right font-mono text-[#99aabb]">{skipped}</td>
+                            <td className="px-3 py-1.5 text-center">
+                              <span
+                                className={`rounded px-1.5 py-0.5 text-[10px] font-semibold ${
+                                  status === 'Processed'
+                                    ? 'bg-[#00e054]/15 text-[#00e054]'
+                                    : status === 'Merged'
+                                    ? 'bg-[#40bcf4]/15 text-[#40bcf4]'
+                                    : 'bg-[#ff8000]/15 text-[#ff8000]'
+                                }`}
+                              >
+                                {status}
+                              </span>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                    <tfoot className="border-t border-[#2c3440] bg-[#222831] font-semibold text-white">
+                      <tr>
+                        <td className="px-3 py-1.5">Total</td>
+                        <td className="px-2 py-1.5 text-right font-mono">{totalFound}</td>
+                        <td className="px-2 py-1.5 text-right font-mono text-[#00e054]">{totalAdded}</td>
+                        <td className="px-2 py-1.5 text-right font-mono text-[#40bcf4]">{totalApplied}</td>
+                        <td className="px-2 py-1.5 text-right font-mono text-[#99aabb]">{totalSkipped}</td>
+                        <td className="px-3 py-1.5 text-center text-[#00e054] text-[10px]">
+                          {isReconciled ? 'Reconciled' : 'Discrepancy'}
+                        </td>
+                      </tr>
+                    </tfoot>
+                  </table>
+                </div>
               </div>
-            </div>
-          )}
+            );
+          })()}
 
           {/* Storage Usage info */}
           <div className="rounded-lg border border-[#2c3440] bg-[#14181c] p-3 text-xs text-[#99aabb]">

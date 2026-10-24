@@ -1,7 +1,8 @@
 /**
  * Letterboxd CSV Parser & Data Normalizer
  * Pure, robust parsing by column header names with multi-line quote support,
- * BOM stripping, CRLF normalization, privacy filtering, and date verification.
+ * BOM stripping, CRLF normalization, privacy filtering, date verification,
+ * and 5-column reconciliation (Found = Added + Applied + Skipped).
  */
 
 import Papa from 'papaparse';
@@ -50,74 +51,83 @@ export function parseCsvRows(content: string): Array<Record<string, string>> {
 }
 
 /**
- * Parses Letterboxd List format (v7 or similar)
- * Format:
- * Letterboxd list export v7
- * Date,Name,Tags,URL,Description
- * ... (metadata row, description may be multi-line)
- *
- * Position,Name,Year,URL,Description
- * ... (items table)
+ * Parses Letterboxd List format (v7 or similar) using Papaparse table extraction.
+ * Immune to multi-line descriptions and line breaks.
  */
 export function parseListCsv(content: string, slug: string): FilmList | null {
   const sanitized = sanitizeCsvContent(content);
-  const lines = sanitized.split('\n');
+  const result = Papa.parse<string[]>(sanitized, {
+    header: false,
+    skipEmptyLines: 'greedy'
+  });
 
-  if (lines.length < 3) return null;
+  const rawRows = result.data;
+  if (rawRows.length < 3) return null;
 
-  // Find where metadata ends and items table begins
-  // Usually marked by blank line followed by "Position,Name,Year,..."
-  let itemsHeaderIndex = -1;
-  for (let i = 0; i < lines.length; i++) {
-    const trimmed = lines[i].trim().toLowerCase();
-    if (trimmed.startsWith('position,name,year')) {
-      itemsHeaderIndex = i;
-      break;
+  // Locate metadata header row and items header row
+  let metaHeaderIdx = -1;
+  let itemsHeaderIdx = -1;
+
+  for (let i = 0; i < rawRows.length; i++) {
+    const row0 = (rawRows[i][0] || '').trim().toLowerCase();
+    const row1 = (rawRows[i][1] || '').trim().toLowerCase();
+
+    if (row0 === 'date' && row1 === 'name') {
+      metaHeaderIdx = i;
+    } else if (row0 === 'position' && row1 === 'name') {
+      itemsHeaderIdx = i;
     }
   }
 
-  // If no items header found, try finding metadata table only
   let listName = slug;
   let listDate: string | undefined;
   let listTags: string[] = [];
   let listUrl: string | undefined;
   let listDesc: string | undefined;
 
-  const metadataLines = itemsHeaderIndex > 0 ? lines.slice(0, itemsHeaderIndex) : lines.slice(0, 3);
-  // Parse metadata section
-  // Skip the first "Letterboxd list export..." line if present
-  const metaStart = metadataLines[0].toLowerCase().includes('letterboxd list export') ? 1 : 0;
-  const metaCsvText = metadataLines.slice(metaStart).join('\n');
-  const metaParsed = Papa.parse<Record<string, string>>(metaCsvText, {
-    header: true,
-    skipEmptyLines: true
-  });
+  // Parse metadata row if found
+  if (metaHeaderIdx !== -1 && metaHeaderIdx + 1 < rawRows.length) {
+    const metaHeaders = rawRows[metaHeaderIdx].map((h) => (h || '').trim().toLowerCase());
+    const metaValues = rawRows[metaHeaderIdx + 1];
 
-  if (metaParsed.data.length > 0) {
-    const metaRow = normalizeRowKeys(metaParsed.data[0]);
-    listName = metaRow['name'] || slug;
-    listDate = parseCalendarDate(metaRow['date'] || '') ? metaRow['date'] : undefined;
-    listTags = metaRow['tags'] ? metaRow['tags'].split(',').map((t) => t.trim()).filter(Boolean) : [];
-    listUrl = metaRow['url'] || undefined;
-    listDesc = metaRow['description'] || undefined;
+    const getMetaVal = (col: string): string => {
+      const idx = metaHeaders.indexOf(col);
+      return idx !== -1 && metaValues[idx] ? metaValues[idx].trim() : '';
+    };
+
+    listName = getMetaVal('name') || slug;
+    const rawDate = getMetaVal('date');
+    listDate = parseCalendarDate(rawDate) ? rawDate : undefined;
+    const rawTags = getMetaVal('tags');
+    listTags = rawTags ? rawTags.split(',').map((t) => t.trim()).filter(Boolean) : [];
+    listUrl = getMetaVal('url') || undefined;
+    listDesc = getMetaVal('description') || undefined;
   }
 
+  // Parse items table
   const items: ListItem[] = [];
-  if (itemsHeaderIndex > 0) {
-    const itemsCsvText = lines.slice(itemsHeaderIndex).join('\n');
-    const itemsParsed = Papa.parse<Record<string, string>>(itemsCsvText, {
-      header: true,
-      skipEmptyLines: true
-    });
+  if (itemsHeaderIdx !== -1 && itemsHeaderIdx + 1 < rawRows.length) {
+    const itemHeaders = rawRows[itemsHeaderIdx].map((h) => (h || '').trim().toLowerCase());
+    const nameIdx = itemHeaders.indexOf('name');
+    const posIdx = itemHeaders.indexOf('position');
+    const yearIdx = itemHeaders.indexOf('year');
+    const urlIdx = itemHeaders.indexOf('url');
+    const descIdx = itemHeaders.indexOf('description');
 
-    itemsParsed.data.forEach((row) => {
-      const norm = normalizeRowKeys(row);
-      const name = norm['name'];
-      if (!name) return;
-      const pos = parseInt(norm['position'] || '0', 10) || items.length + 1;
-      const year = parseInt(norm['year'] || '', 10) || undefined;
-      const url = norm['url'] || undefined;
-      const desc = norm['description'] || undefined;
+    for (let i = itemsHeaderIdx + 1; i < rawRows.length; i++) {
+      const row = rawRows[i];
+      if (!row || row.length === 0) continue;
+      const name = nameIdx !== -1 ? (row[nameIdx] || '').trim() : '';
+      if (!name) continue;
+
+      const rawPos = posIdx !== -1 ? (row[posIdx] || '').trim() : '';
+      const pos = parseInt(rawPos, 10) || items.length + 1;
+
+      const rawYear = yearIdx !== -1 ? (row[yearIdx] || '').trim() : '';
+      const year = parseInt(rawYear, 10) || undefined;
+
+      const url = urlIdx !== -1 ? (row[urlIdx] || '').trim() || undefined : undefined;
+      const desc = descIdx !== -1 ? (row[descIdx] || '').trim() || undefined : undefined;
 
       items.push({
         position: pos,
@@ -126,7 +136,7 @@ export function parseListCsv(content: string, slug: string): FilmList | null {
         url,
         description: desc
       });
-    });
+    }
   }
 
   return {
@@ -173,8 +183,13 @@ export function processLetterboxdExport(files: Map<string, string>): IngestionSt
   };
 
   // Helper to ensure film exists in index
-  const getOrCreateFilm = (uri: string, name: string, yearStr?: string): Film => {
+  const getOrCreateFilm = (
+    uri: string,
+    name: string,
+    yearStr?: string
+  ): { film: Film; isNew: boolean } => {
     const cleanUri = uri.trim();
+    let isNew = false;
     if (!films[cleanUri]) {
       const year = yearStr ? parseInt(yearStr, 10) || undefined : undefined;
       films[cleanUri] = {
@@ -186,27 +201,36 @@ export function processLetterboxdExport(files: Map<string, string>): IngestionSt
         onWatchlist: false,
         match: { status: 'unmatched' }
       };
+      isNew = true;
     }
-    return films[cleanUri];
+    return { film: films[cleanUri], isNew };
+  };
+
+  // Helper to add reconciled file report (enforces Found = Added + Applied + Skipped)
+  const addFileReport = (rep: ImportFileReport) => {
+    const verifiedSkipped = rep.recordsFound - (rep.recordsAdded + rep.recordsApplied);
+    const finalReport: ImportFileReport = {
+      ...rep,
+      recordsSkipped: verifiedSkipped >= 0 ? verifiedSkipped : rep.recordsSkipped,
+      rowsFound: rep.recordsFound,
+      rowsAccepted: rep.recordsAdded + rep.recordsApplied,
+      rowsIgnored: verifiedSkipped >= 0 ? verifiedSkipped : rep.recordsSkipped
+    };
+    fileReports.push(finalReport);
   };
 
   // 1. Process profile.csv
   const profileContent = files.get('profile.csv');
   if (profileContent) {
     const rows = parseCsvRows(profileContent);
-    fileReports.push({
-      fileName: 'profile.csv',
-      rowsFound: rows.length,
-      rowsAccepted: rows.length > 0 ? 1 : 0,
-      rowsIgnored: Math.max(0, rows.length - 1)
-    });
+    const added = rows.length > 0 ? 1 : 0;
+    const skipped = Math.max(0, rows.length - 1);
 
     if (rows.length > 0) {
       const r = rows[0];
       // PRIVACY: Only extract username, date joined, bio, given name, and favorite URIs.
       // Explicitly discard email address, family name, location, website, pronoun.
       const rawFavs = r['favorite films'] || r['favorite film'] || '';
-      // Parse quoted comma-separated URIs
       const favUris = rawFavs
         .split(',')
         .map((u) => u.trim().replace(/^"|"$/g, ''))
@@ -220,28 +244,46 @@ export function processLetterboxdExport(files: Map<string, string>): IngestionSt
         favoriteFilmUris: favUris
       };
     }
+
+    addFileReport({
+      fileName: 'profile.csv',
+      recordsFound: rows.length,
+      recordsAdded: added,
+      recordsApplied: 0,
+      recordsSkipped: skipped,
+      status: 'Processed'
+    });
   }
 
   // 2. Process watched.csv
   const watchedContent = files.get('watched.csv');
   if (watchedContent) {
     const rows = parseCsvRows(watchedContent);
-    let accepted = 0;
+    let added = 0;
+    let applied = 0;
+    let skipped = 0;
+
     rows.forEach((r) => {
       const uri = r['letterboxd uri'];
       const name = r['name'];
       if (uri && name) {
         registerCanonicalUri(uri, name, r['year']);
-        const film = getOrCreateFilm(uri, name, r['year']);
+        const { film, isNew } = getOrCreateFilm(uri, name, r['year']);
         film.watched = true;
-        accepted++;
+        if (isNew) added++;
+        else applied++;
+      } else {
+        skipped++;
       }
     });
-    fileReports.push({
+
+    addFileReport({
       fileName: 'watched.csv',
-      rowsFound: rows.length,
-      rowsAccepted: accepted,
-      rowsIgnored: rows.length - accepted
+      recordsFound: rows.length,
+      recordsAdded: added,
+      recordsApplied: applied,
+      recordsSkipped: skipped,
+      status: 'Processed'
     });
   }
 
@@ -249,24 +291,33 @@ export function processLetterboxdExport(files: Map<string, string>): IngestionSt
   const ratingsContent = files.get('ratings.csv');
   if (ratingsContent) {
     const rows = parseCsvRows(ratingsContent);
-    let accepted = 0;
+    let added = 0;
+    let applied = 0;
+    let skipped = 0;
+
     rows.forEach((r) => {
       const uri = r['letterboxd uri'];
       const name = r['name'];
       const ratingVal = parseFloat(r['rating'] || '0');
       if (uri && name && !isNaN(ratingVal) && ratingVal > 0) {
         registerCanonicalUri(uri, name, r['year']);
-        const film = getOrCreateFilm(uri, name, r['year']);
+        const { film, isNew } = getOrCreateFilm(uri, name, r['year']);
         film.rating = ratingVal;
         film.watched = true; // rating implies watched
-        accepted++;
+        if (isNew) added++;
+        else applied++;
+      } else {
+        skipped++;
       }
     });
-    fileReports.push({
+
+    addFileReport({
       fileName: 'ratings.csv',
-      rowsFound: rows.length,
-      rowsAccepted: accepted,
-      rowsIgnored: rows.length - accepted
+      recordsFound: rows.length,
+      recordsAdded: added,
+      recordsApplied: applied,
+      recordsSkipped: skipped,
+      status: added > 0 ? 'Processed' : 'Merged'
     });
   }
 
@@ -274,26 +325,35 @@ export function processLetterboxdExport(files: Map<string, string>): IngestionSt
   const watchlistContent = files.get('watchlist.csv');
   if (watchlistContent) {
     const rows = parseCsvRows(watchlistContent);
-    let accepted = 0;
+    let added = 0;
+    let applied = 0;
+    let skipped = 0;
+
     rows.forEach((r) => {
       const uri = r['letterboxd uri'];
       const name = r['name'];
       if (uri && name) {
         registerCanonicalUri(uri, name, r['year']);
-        const film = getOrCreateFilm(uri, name, r['year']);
+        const { film, isNew } = getOrCreateFilm(uri, name, r['year']);
         film.onWatchlist = true;
         const wlDate = r['date'];
         if (wlDate && parseCalendarDate(wlDate)) {
           film.watchlistDate = wlDate;
         }
-        accepted++;
+        if (isNew) added++;
+        else applied++;
+      } else {
+        skipped++;
       }
     });
-    fileReports.push({
+
+    addFileReport({
       fileName: 'watchlist.csv',
-      rowsFound: rows.length,
-      rowsAccepted: accepted,
-      rowsIgnored: rows.length - accepted
+      recordsFound: rows.length,
+      recordsAdded: added,
+      recordsApplied: applied,
+      recordsSkipped: skipped,
+      status: 'Processed'
     });
   }
 
@@ -301,22 +361,31 @@ export function processLetterboxdExport(files: Map<string, string>): IngestionSt
   const likesContent = files.get('likes/films.csv');
   if (likesContent) {
     const rows = parseCsvRows(likesContent);
-    let accepted = 0;
+    let added = 0;
+    let applied = 0;
+    let skipped = 0;
+
     rows.forEach((r) => {
       const uri = r['letterboxd uri'];
       const name = r['name'];
       if (uri && name) {
         registerCanonicalUri(uri, name, r['year']);
-        const film = getOrCreateFilm(uri, name, r['year']);
+        const { film, isNew } = getOrCreateFilm(uri, name, r['year']);
         film.liked = true;
-        accepted++;
+        if (isNew) added++;
+        else applied++;
+      } else {
+        skipped++;
       }
     });
-    fileReports.push({
+
+    addFileReport({
       fileName: 'likes/films.csv',
-      rowsFound: rows.length,
-      rowsAccepted: accepted,
-      rowsIgnored: rows.length - accepted
+      recordsFound: rows.length,
+      recordsAdded: added,
+      recordsApplied: applied,
+      recordsSkipped: skipped,
+      status: added > 0 ? 'Processed' : 'Merged'
     });
   }
 
@@ -326,6 +395,8 @@ export function processLetterboxdExport(files: Map<string, string>): IngestionSt
   let reviewsCount = 0;
   if (reviewsContent) {
     const rows = parseCsvRows(reviewsContent);
+    let skipped = 0;
+
     rows.forEach((r) => {
       const name = r['name'];
       const reviewText = r['review'];
@@ -336,14 +407,21 @@ export function processLetterboxdExport(files: Map<string, string>): IngestionSt
         if (canonicalUri) {
           reviewsMap.set(`${canonicalUri}::${dateKey}`, reviewText);
           reviewsCount++;
+        } else {
+          skipped++;
         }
+      } else {
+        skipped++;
       }
     });
-    fileReports.push({
+
+    addFileReport({
       fileName: 'reviews.csv',
-      rowsFound: rows.length,
-      rowsAccepted: reviewsCount,
-      rowsIgnored: rows.length - reviewsCount
+      recordsFound: rows.length,
+      recordsAdded: reviewsCount,
+      recordsApplied: 0,
+      recordsSkipped: skipped,
+      status: 'Processed'
     });
   }
 
@@ -352,10 +430,15 @@ export function processLetterboxdExport(files: Map<string, string>): IngestionSt
   if (diaryContent) {
     const rows = parseCsvRows(diaryContent);
     let accepted = 0;
+    let skipped = 0;
+
     rows.forEach((r, idx) => {
       const rawLogUri = r['letterboxd uri']?.trim();
       const name = r['name']?.trim();
-      if (!name) return;
+      if (!name) {
+        skipped++;
+        return;
+      }
 
       const key = getNameYearKey(name, r['year']);
       let canonicalUri = nameYearToCanonicalUri.get(key);
@@ -366,7 +449,7 @@ export function processLetterboxdExport(files: Map<string, string>): IngestionSt
         nameYearToCanonicalUri.set(key, canonicalUri);
       }
 
-      const film = getOrCreateFilm(canonicalUri, name, r['year']);
+      const { film } = getOrCreateFilm(canonicalUri, name, r['year']);
       film.watched = true;
 
       // Watched Date vs Date
@@ -383,7 +466,10 @@ export function processLetterboxdExport(files: Map<string, string>): IngestionSt
         isApproximate = true;
       }
 
-      const loggedDate = rawLoggedDate && parseCalendarDate(rawLoggedDate) ? rawLoggedDate : (watchedDate || '1970-01-01');
+      const loggedDate =
+        rawLoggedDate && parseCalendarDate(rawLoggedDate)
+          ? rawLoggedDate
+          : watchedDate || '1970-01-01';
 
       // Entry rating
       const rawRating = parseFloat(r['rating'] || '0');
@@ -403,8 +489,9 @@ export function processLetterboxdExport(files: Map<string, string>): IngestionSt
       const tags = r['tags'] ? r['tags'].split(',').map((t) => t.trim()).filter(Boolean) : [];
 
       // Link review if exists
-      const review = reviewsMap.get(`${canonicalUri}::${rawWatchedDate || rawLoggedDate}`) ||
-                     reviewsMap.get(`${canonicalUri}::${rawLoggedDate}`);
+      const review =
+        reviewsMap.get(`${canonicalUri}::${rawWatchedDate || rawLoggedDate}`) ||
+        reviewsMap.get(`${canonicalUri}::${rawLoggedDate}`);
 
       entries.push({
         entryId: rawLogUri || `entry_${idx}_${canonicalUri.replace(/[^a-zA-Z0-9]/g, '')}`,
@@ -420,46 +507,63 @@ export function processLetterboxdExport(files: Map<string, string>): IngestionSt
       accepted++;
     });
 
-    fileReports.push({
+    addFileReport({
       fileName: 'diary.csv',
-      rowsFound: rows.length,
-      rowsAccepted: accepted,
-      rowsIgnored: rows.length - accepted
+      recordsFound: rows.length,
+      recordsAdded: accepted,
+      recordsApplied: 0,
+      recordsSkipped: skipped,
+      status: 'Processed'
     });
   }
 
-  // 8. Process lists/*.csv
+  // 8. Process lists/*.csv (1 row per list file with item count)
   files.forEach((content, path) => {
     if (path.startsWith('lists/') && path.endsWith('.csv')) {
       const slug = path.replace(/^lists\//, '').replace(/\.csv$/, '');
       const parsedList = parseListCsv(content, slug);
       if (parsedList) {
         lists.push(parsedList);
-        fileReports.push({
+        addFileReport({
           fileName: path,
-          rowsFound: parsedList.items.length,
-          rowsAccepted: parsedList.items.length,
-          rowsIgnored: 0
+          recordsFound: parsedList.items.length,
+          recordsAdded: parsedList.items.length,
+          recordsApplied: 0,
+          recordsSkipped: 0,
+          status: 'Processed'
         });
       }
     }
   });
 
-  // Track ignored files
-  files.forEach((_, path) => {
-    if (
-      path.startsWith('deleted/') ||
-      path.startsWith('orphaned/') ||
-      path === 'comments.csv' ||
-      path === 'likes/lists.csv' ||
-      path === 'likes/reviews.csv'
-    ) {
-      fileReports.push({
+  // 9. Track ignored files ONLY if present in the archive
+  const IGNORED_DEFINITIONS: Record<string, string> = {
+    'comments.csv': 'Third-party user comments export',
+    'likes/lists.csv': 'List likes (not part of personal film library)',
+    'likes/reviews.csv': 'Review likes (not part of personal film library)'
+  };
+
+  files.forEach((content, path) => {
+    let ignoreReason: string | undefined;
+
+    if (IGNORED_DEFINITIONS[path]) {
+      ignoreReason = IGNORED_DEFINITIONS[path];
+    } else if (path.startsWith('deleted/')) {
+      ignoreReason = 'Deleted records export';
+    } else if (path.startsWith('orphaned/')) {
+      ignoreReason = 'Orphaned entries export';
+    }
+
+    if (ignoreReason) {
+      const rows = parseCsvRows(content);
+      addFileReport({
         fileName: path,
-        rowsFound: 0,
-        rowsAccepted: 0,
-        rowsIgnored: 0,
-        reason: 'Ignored per specification (third-party or deleted content)'
+        recordsFound: rows.length,
+        recordsAdded: 0,
+        recordsApplied: 0,
+        recordsSkipped: rows.length,
+        status: 'Ignored',
+        reason: ignoreReason
       });
     }
   });
