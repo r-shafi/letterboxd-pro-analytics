@@ -4,6 +4,16 @@
 
 export type MatchConfidence = 'confident' | 'ambiguous' | 'unmatched';
 
+export type MatchReviewReason =
+  | 'exact_title_and_year'
+  | 'exact_tie_breaker'
+  | 'approximate_year'
+  | 'high_score_clear_margin'
+  | 'same_title_duplicates'
+  | 'no_confident_match'
+  | 'no_plausible_match'
+  | 'unmatched';
+
 export interface TmdbMatchCandidate {
   id: number;
   title: string;
@@ -25,6 +35,9 @@ export interface TmdbMatchResult {
   score?: number;
   candidates?: TmdbMatchCandidate[];
   manuallyOverridden?: boolean;
+  reason?: MatchReviewReason;
+  approximateYear?: boolean;
+  matchRulesVersion?: number;
 }
 
 export interface TmdbPersonCompact {
@@ -122,10 +135,16 @@ export interface Profile {
 
 export interface ImportFileReport {
   fileName: string;
-  rowsFound: number;
-  rowsAccepted: number;
-  rowsIgnored: number;
+  recordsFound: number;
+  recordsAdded: number;
+  recordsApplied: number;
+  recordsSkipped: number;
+  status: 'Processed' | 'Ignored' | 'Merged';
   reason?: string;
+  // Backward compatibility aliases
+  rowsFound?: number;
+  rowsAccepted?: number;
+  rowsIgnored?: number;
 }
 
 export interface ImportReport {

@@ -13,7 +13,7 @@ import {
   TmdbMatchCandidate
 } from '../../types/domain.ts';
 import { AdaptiveRateLimiter } from './limiter.ts';
-import { scoreCandidate, classifyCandidates } from './matching.ts';
+import { scoreCandidate, classifyCandidates, stripSubtitle, MATCH_RULES_VERSION } from './matching.ts';
 import { storage } from '../../utils/storage.ts';
 
 export interface TmdbClientConfig {
@@ -224,6 +224,24 @@ export class TmdbClient {
       }
     }
 
+    // Step 1b: Search with stripped subtitle if 0 results
+    const strippedTitle = stripSubtitle(name);
+    if (results.length === 0 && strippedTitle) {
+      if (year) {
+        try {
+          const res = await this.fetchJson<SearchResponse>('/search/movie', {
+            query: strippedTitle,
+            year: year,
+            include_adult: false,
+            language: 'en-US'
+          });
+          results = res.results || [];
+        } catch {
+          results = [];
+        }
+      }
+    }
+
     // Step 2: Fallback to primary_release_year if 0 results
     if (results.length === 0 && year) {
       try {
@@ -253,8 +271,27 @@ export class TmdbClient {
       }
     }
 
+    // Step 3b: Fallback stripped subtitle without year restriction
+    if (results.length === 0 && strippedTitle) {
+      try {
+        const res = await this.fetchJson<SearchResponse>('/search/movie', {
+          query: strippedTitle,
+          include_adult: false,
+          language: 'en-US'
+        });
+        results = res.results || [];
+      } catch {
+        results = [];
+      }
+    }
+
     if (results.length === 0) {
-      return { status: 'unmatched' };
+      return {
+        status: 'unmatched',
+        reason: 'unmatched',
+        candidates: [],
+        matchRulesVersion: MATCH_RULES_VERSION
+      };
     }
 
     // Convert and score all candidates
@@ -284,13 +321,17 @@ export class TmdbClient {
       };
     });
 
-    const classification = classifyCandidates(candidates);
+    candidates.sort((a, b) => b.confidenceScore - a.confidenceScore);
+    const classification = classifyCandidates(candidates, name, year);
 
     return {
       status: classification.status,
       tmdbId: classification.topCandidate?.id,
       score: classification.topCandidate?.confidenceScore,
-      candidates
+      candidates,
+      reason: classification.reason,
+      approximateYear: classification.approximateYear,
+      matchRulesVersion: MATCH_RULES_VERSION
     };
   }
 
