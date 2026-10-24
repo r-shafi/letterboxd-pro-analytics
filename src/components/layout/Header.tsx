@@ -62,12 +62,15 @@ export const Header: React.FC<HeaderProps> = ({
           {totalFilms !== undefined && totalFilms > 0 && onOpenQualityModal && (
             <button
               onClick={onOpenQualityModal}
-              className="hidden items-center gap-1.5 rounded bg-[#1b2026] px-2.5 py-1 text-xs font-medium text-[#99aabb] hover:bg-[#2c3440] hover:text-white sm:flex border border-[#2c3440]"
+              className="flex items-center gap-1.5 rounded bg-[#1b2026] px-2.5 py-1 text-xs font-medium text-[#99aabb] hover:bg-[#2c3440] hover:text-white border border-[#2c3440]"
               title="View import and data quality details"
             >
               <Database className="h-3.5 w-3.5 text-[#00e054]" />
-              <span>
+              <span className="hidden sm:inline">
                 {matchedCount ?? 0}/{totalFilms} Matched
+              </span>
+              <span className="sm:hidden">
+                {matchedCount ?? 0}
               </span>
             </button>
           )}

@@ -44,7 +44,7 @@ export const S10RewatchesSection: React.FC<S10RewatchesSectionProps> = ({
           </div>
 
           <div className="space-y-2">
-            {rewatches.topRewatched.slice(0, 5).map(({ film, count }) => (
+            {rewatches.topRewatched.slice(0, 5).filter(item => Boolean(item.film)).map(({ film, count }) => (
               <button
                 key={film.letterboxdUri}
                 onClick={() => onSelectFilm(film.letterboxdUri)}

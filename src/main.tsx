@@ -1,5 +1,6 @@
 import React, { StrictMode, useState, useEffect, useMemo } from 'react';
 import { createRoot } from 'react-dom/client';
+import { Check, X } from 'lucide-react';
 import { Header } from './components/layout/Header.tsx';
 import { Footer } from './components/layout/Footer.tsx';
 import { Dropzone } from './components/ingestion/Dropzone.tsx';
@@ -130,16 +131,35 @@ export const App: React.FC = () => {
     }
   }, [store.status]);
 
-  // Compute analytics snapshot memoized on films, entries, filter
+  // Auto-open review modal when matching completes with review items
+  useEffect(() => {
+    if (store.autoOpenReviewModal) {
+      setIsReviewMatchesOpen(true);
+    }
+  }, [store.autoOpenReviewModal]);
+
+  // Compute analytics snapshot memoized on films, entries, filter, but paused during match review
+  const [cachedSnapshot, setCachedSnapshot] = useState<AnalyticsSnapshot | null>(null);
+
   const snapshot = useMemo(() => {
-    return calculateAnalyticsSnapshot(
+    if (isReviewMatchesOpen && cachedSnapshot) {
+      return cachedSnapshot;
+    }
+    const computed = calculateAnalyticsSnapshot(
       store.films,
       store.entries,
       store.lists,
       store.profile,
       filter
     );
-  }, [store.films, store.entries, store.lists, store.profile, filter]);
+    return computed;
+  }, [store.films, store.entries, store.lists, store.profile, filter, isReviewMatchesOpen]);
+
+  useEffect(() => {
+    if (!isReviewMatchesOpen) {
+      setCachedSnapshot(snapshot);
+    }
+  }, [snapshot, isReviewMatchesOpen]);
 
   const isSharedView = Boolean(sharedViewData);
   const activeFilms = sharedViewData ? sharedViewData.films : store.films;
@@ -273,6 +293,8 @@ export const App: React.FC = () => {
           totalFilms={activeSnapshot.s1Snapshot.totalFilms}
           dateUnknownCount={activeSnapshot.s1Snapshot.dateUnknownCount}
           matchedCount={matchedCount}
+          reviewNeededCount={store.reviewNeededCount}
+          onOpenReviewMatches={() => setIsReviewMatchesOpen(true)}
         />
       )}
 
@@ -442,12 +464,33 @@ export const App: React.FC = () => {
         />
       )}
 
-      {isReviewMatchesOpen && (
+      {(isReviewMatchesOpen || store.autoOpenReviewModal) && (
         <ReviewMatchesModal
           films={activeFilms}
-          onClose={() => setIsReviewMatchesOpen(false)}
+          onClose={() => {
+            setIsReviewMatchesOpen(false);
+            store.dismissReviewPrompt();
+          }}
           onOverrideMatch={store.overrideMatch}
+          onUndoOverrideMatch={store.undoOverrideMatch}
+          onMarkUnmatched={store.markAsUnmatched}
+          onAcceptApproximateMatches={store.acceptApproximateMatches}
         />
+      )}
+
+      {/* All films matched toast */}
+      {store.allMatchedToast && (
+        <div className="fixed bottom-6 right-6 z-50 flex items-center gap-2 rounded-lg bg-[#00e054] px-4 py-2.5 text-xs font-bold text-[#14181c] shadow-xl">
+          <Check className="h-4 w-4" />
+          <span>All films matched</span>
+          <button
+            onClick={store.clearAllMatchedToast}
+            className="ml-2 rounded p-0.5 hover:bg-black/10"
+            aria-label="Dismiss toast"
+          >
+            <X className="h-3.5 w-3.5" />
+          </button>
+        </div>
       )}
 
       {isShareModalOpen && (
@@ -469,6 +512,7 @@ export const App: React.FC = () => {
 
 const rootElement = document.getElementById('root');
 if (rootElement) {
+  (window as unknown as { useIngestionStore?: typeof useIngestionStore }).useIngestionStore = useIngestionStore;
   createRoot(rootElement).render(
     <StrictMode>
       <App />

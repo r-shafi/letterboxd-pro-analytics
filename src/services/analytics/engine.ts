@@ -1089,6 +1089,7 @@ export function calculateAnalyticsSnapshot(
   const topRewatched = Array.from(filmEntriesMap.entries())
     .filter(([_, list]) => list.length > 1)
     .map(([uri, list]) => ({ film: filmsRecord[uri], count: list.length }))
+    .filter((item): item is { film: Film; count: number } => Boolean(item.film))
     .sort((a, b) => b.count - a.count)
     .slice(0, 10);
 
@@ -1110,7 +1111,7 @@ export function calculateAnalyticsSnapshot(
       allReviewTexts.push(e.review);
       const wCount = e.review.trim().split(/\s+/).length;
       totalWords += wCount;
-      if (!longestReview || wCount > longestReview.wordCount) {
+      if (filmsRecord[e.filmKey] && (!longestReview || wCount > longestReview.wordCount)) {
         longestReview = {
           film: filmsRecord[e.filmKey],
           wordCount: wCount,

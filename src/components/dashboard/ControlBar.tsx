@@ -1,6 +1,6 @@
 import React from 'react';
 import { TimeFilter, TimeRangeOption } from '../../services/analytics/types.ts';
-import { Calendar, Filter, Clock } from 'lucide-react';
+import { Calendar, Filter, Clock, AlertCircle } from 'lucide-react';
 
 interface ControlBarProps {
   filter: TimeFilter;
@@ -9,6 +9,8 @@ interface ControlBarProps {
   totalFilms: number;
   dateUnknownCount: number;
   matchedCount: number;
+  reviewNeededCount?: number;
+  onOpenReviewMatches?: () => void;
 }
 
 export const ControlBar: React.FC<ControlBarProps> = ({
@@ -17,7 +19,9 @@ export const ControlBar: React.FC<ControlBarProps> = ({
   availableYears,
   totalFilms,
   dateUnknownCount,
-  matchedCount
+  matchedCount,
+  reviewNeededCount,
+  onOpenReviewMatches
 }) => {
   const handleRangeChange = (range: TimeRangeOption) => {
     if (range === 'year') {
@@ -89,6 +93,16 @@ export const ControlBar: React.FC<ControlBarProps> = ({
               <Clock className="h-3 w-3" />
               <span>{dateUnknownCount} films without watch date not shown</span>
             </div>
+          )}
+
+          {reviewNeededCount !== undefined && reviewNeededCount > 0 && onOpenReviewMatches && (
+            <button
+              onClick={onOpenReviewMatches}
+              className="inline-flex items-center gap-1.5 rounded-full bg-[#ff8000]/15 px-2.5 py-0.5 text-[11px] font-semibold text-[#ff8000] border border-[#ff8000]/30 hover:bg-[#ff8000]/25 transition-colors"
+            >
+              <AlertCircle className="h-3 w-3 text-[#ff8000]" />
+              <span>{reviewNeededCount} films need review</span>
+            </button>
           )}
 
           <div className="flex items-center gap-1 rounded bg-[#14181c] px-2 py-0.5 border border-[#2c3440]">
